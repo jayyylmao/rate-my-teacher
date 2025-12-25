@@ -19,7 +19,7 @@ export default function Home() {
           Hello World!
         </h1>
         <p className="text-2xl text-white/90">
-          Welcome to your Next.js app deployed on Vercel
+          Welcome to yoaaaaaur Next.js app deployed on Vercel
         </p>
 
         <button
