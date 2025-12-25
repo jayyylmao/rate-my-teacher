@@ -1,79 +1,26 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import SearchBar from "@/components/search/search-bar";
 import TeacherCard from "@/components/teachers/teacher-card";
 import Button from "@/components/ui/button";
-
-interface Teacher {
-  id: number;
-  name: string;
-  subject: string;
-  department: string | null;
-  created_at: string;
-  reviews: { rating: number }[];
-}
-
-interface TeacherWithRating extends Omit<Teacher, "reviews"> {
-  averageRating: number;
-  reviewCount: number;
-}
+import { teacherApi, type TeacherDTO } from "@/lib/api/teachers";
 
 export default async function Home() {
-  const supabase = await createClient();
+  // Fetch data from Java API
+  let totalTeachers = 0;
+  let totalReviews = 0;
+  let teachersWithRating: TeacherDTO[] = [];
 
-  // Fetch total counts
-  const [teachersCountResult, reviewsCountResult] = await Promise.all([
-    supabase.from("teachers").select("*", { count: "exact", head: true }),
-    supabase.from("reviews").select("*", { count: "exact", head: true }),
-  ]);
+  try {
+    // Fetch platform stats
+    const stats = await teacherApi.getStats();
+    totalTeachers = stats.totalTeachers;
+    totalReviews = stats.totalReviews;
 
-  const totalTeachers = teachersCountResult.count || 0;
-  const totalReviews = reviewsCountResult.count || 0;
-
-  // Fetch recently reviewed teachers
-  // First, get the most recent reviews to find which teachers were recently reviewed
-  const { data: recentReviews } = await supabase
-    .from("reviews")
-    .select("teacher_id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  // Get unique teacher IDs from recent reviews
-  const recentTeacherIds = recentReviews
-    ? [...new Set(recentReviews.map((r) => r.teacher_id))].slice(0, 6)
-    : [];
-
-  let teachersWithRating: TeacherWithRating[] = [];
-
-  if (recentTeacherIds.length > 0) {
-    // Fetch teachers with their reviews
-    const { data: teachers } = await supabase
-      .from("teachers")
-      .select("*, reviews(rating)")
-      .in("id", recentTeacherIds);
-
-    // Calculate average rating for each teacher
-    teachersWithRating =
-      teachers?.map((teacher) => ({
-        id: teacher.id,
-        name: teacher.name,
-        subject: teacher.subject,
-        department: teacher.department,
-        created_at: teacher.created_at,
-        averageRating:
-          teacher.reviews.length > 0
-            ? teacher.reviews.reduce(
-                (sum: number, r: { rating: number }) => sum + r.rating,
-                0
-              ) / teacher.reviews.length
-            : 0,
-        reviewCount: teacher.reviews.length,
-      })) || [];
-
-    // Sort by the order of recentTeacherIds
-    teachersWithRating.sort((a, b) => {
-      return recentTeacherIds.indexOf(a.id) - recentTeacherIds.indexOf(b.id);
-    });
+    // Fetch recently reviewed teachers
+    teachersWithRating = await teacherApi.getRecentlyReviewed(6);
+  } catch (error) {
+    console.error("Failed to fetch data from API:", error);
+    // Continue with empty data - UI will show "No Teachers Yet" state
   }
 
   return (
@@ -152,7 +99,7 @@ export default async function Home() {
                 name={teacher.name}
                 subject={teacher.subject}
                 department={teacher.department}
-                averageRating={teacher.averageRating}
+                averageRating={teacher.averageRating ?? 0}
                 reviewCount={teacher.reviewCount}
               />
             ))}
