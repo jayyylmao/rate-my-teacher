@@ -121,7 +121,7 @@ export default function ReviewForm({ teacherId, teacherName }: ReviewFormProps) 
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder={`Share your experience with ${teacherName}...`}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-black"
           maxLength={1000}
         />
         <div className="flex justify-between items-center mt-1">

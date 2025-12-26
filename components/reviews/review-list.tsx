@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import ReviewCard from "./review-card";
 import ReviewSort, { SortOption } from "./review-sort";
+import type { TagKey } from "@/lib/api/types";
 
 interface Review {
   id: number;
@@ -10,6 +11,7 @@ interface Review {
   comment: string;
   reviewer_name: string;
   created_at: string;
+  tags?: TagKey[];
 }
 
 interface ReviewListProps {
@@ -83,6 +85,7 @@ export default function ReviewList({ reviews }: ReviewListProps) {
             comment={review.comment}
             reviewerName={review.reviewer_name}
             createdAt={new Date(review.created_at)}
+            tags={review.tags}
           />
         ))}
       </div>
