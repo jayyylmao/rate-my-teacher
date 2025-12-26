@@ -38,6 +38,30 @@ public class Review {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "round_type")
+    private String roundType;
+
+    @Column(name = "interviewer_initials", length = 4)
+    private String interviewerInitials;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "outcome", length = 20)
+    private ReviewOutcome outcome;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private ReviewStatus status = ReviewStatus.PENDING;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "author_type", nullable = false, length = 10)
+    private AuthorType authorType = AuthorType.GUEST;
+
+    @Column(name = "author_user_id")
+    private Long authorUserId;
+
     @ManyToMany
     @JoinTable(
         name = "review_tags",

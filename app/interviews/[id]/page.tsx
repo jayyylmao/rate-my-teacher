@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import StarRating from "@/components/ui/star-rating";
 import Button from "@/components/ui/button";
 import Breadcrumb from "@/components/ui/breadcrumb";
 import ShareButton from "@/components/ui/share-button";
-import RatingDistribution from "@/components/teachers/rating-distribution";
+import RatingDistribution from "@/components/ui/rating-distribution";
 import ReviewList from "@/components/reviews/review-list";
+import SubmissionSuccessBanner from "@/components/reviews/submission-success-banner";
 import { interviewApi } from "@/lib/api/interviews";
 import type { InterviewDetailDTO } from "@/lib/api/types";
 
@@ -63,15 +65,8 @@ export default async function InterviewProfilePage({ params }: PageProps) {
   // Use the average rating from API
   const averageRating = interview.averageRating ?? 0;
 
-  // Map API reviews to component format (includes tags)
-  const reviews = reviewsFromApi.map((r) => ({
-    id: r.id,
-    rating: r.rating,
-    comment: r.comment,
-    reviewer_name: r.reviewerName,
-    created_at: r.createdAt,
-    tags: r.tags,
-  }));
+  // Reviews already in correct format from API (ReviewDTO)
+  const reviews = reviewsFromApi;
 
   // Rating distribution - use backend-provided or compute from reviews
   const ratingCounts = detail.ratingBreakdown
@@ -109,6 +104,11 @@ export default async function InterviewProfilePage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Submission Success Banner */}
+      <Suspense fallback={null}>
+        <SubmissionSuccessBanner />
+      </Suspense>
+
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

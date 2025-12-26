@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import Link from "next/link";
 import Breadcrumb from "@/components/ui/breadcrumb";
+import InterviewReviewForm from "@/components/reviews/interview-review-form";
 import { interviewApi } from "@/lib/api/interviews";
 
 interface PageProps {
@@ -30,12 +32,18 @@ export default async function WriteReviewPage({ params }: PageProps) {
   const { id } = await params;
 
   let interview;
+  let tags;
 
   try {
-    const detail = await interviewApi.getInterviewById(id);
+    // Fetch interview and tags in parallel
+    const [detail, tagsResponse] = await Promise.all([
+      interviewApi.getInterviewById(id),
+      interviewApi.getTags(),
+    ]);
     interview = detail.interview;
+    tags = tagsResponse.items;
   } catch (error) {
-    console.error("Failed to fetch interview:", error);
+    console.error("Failed to fetch data:", error);
     notFound();
   }
 
@@ -72,11 +80,7 @@ export default async function WriteReviewPage({ params }: PageProps) {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-xl shadow-md p-8">
-          {/* Review form placeholder - will be implemented with tag support */}
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg mb-4">Review form coming soon</p>
-            <p className="text-sm">This will include rating, comment, and tag selection</p>
-          </div>
+          <InterviewReviewForm interviewId={parseInt(id)} initialTags={tags} />
         </div>
 
         {/* Guidelines */}
@@ -108,6 +112,17 @@ export default async function WriteReviewPage({ params }: PageProps) {
               Keep comments respectful and professional
             </li>
           </ul>
+          <div className="mt-4 pt-4 border-t border-blue-100">
+            <Link
+              href="/how-reviews-work"
+              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Learn more about how reviews work
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

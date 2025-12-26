@@ -3,6 +3,8 @@ import { Metadata } from "next";
 import InterviewGrid from "@/components/interviews/interview-grid";
 import Breadcrumb from "@/components/ui/breadcrumb";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Browse Interview Experiences | Rate My Interview",
   description: "Browse and search through interview experiences. Filter by company, role, level, and more.",

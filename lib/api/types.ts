@@ -26,6 +26,20 @@ export interface InterviewExperienceDTO {
   topTags?: TagKey[];
 }
 
+export type RoundType =
+  | "PHONE_SCREEN"
+  | "RECRUITER"
+  | "BEHAVIORAL"
+  | "CODING"
+  | "SYSTEM_DESIGN"
+  | "CASE_STUDY"
+  | "ONSITE"
+  | "OTHER";
+
+export type ReviewOutcome = "OFFER" | "REJECTED" | "WITHDREW";
+
+export type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export interface ReviewDTO {
   id: number;
   interviewId: number;
@@ -34,6 +48,11 @@ export interface ReviewDTO {
   reviewerName: string;
   createdAt: string;
   tags: TagKey[];
+  roundType?: RoundType | null;
+  interviewerInitials?: string | null;
+  outcome?: ReviewOutcome | null;
+  status: ReviewStatus;
+  approvedAt?: string | null;
 }
 
 export interface InterviewDetailDTO {
@@ -79,10 +98,40 @@ export interface CreateInterviewPayload {
   location?: string;
 }
 
+export interface StructuredRatings {
+  interviewStructure: number; // 1-5: Interview structure clarity
+  questionRelevance: number; // 1-5: Question relevance to role
+  professionalism: number; // 1-5: Professionalism & interaction quality
+  communicationClarity: number; // 1-5: Communication / feedback clarity
+}
+
 export interface AddReviewPayload {
   interviewId: number;
   rating: number;
   comment: string;
   reviewerName: string;
   tags: TagKey[];
+  roundType?: RoundType;
+  interviewerInitials?: string;
+  outcome?: ReviewOutcome;
+  structuredRatings?: StructuredRatings;
+}
+
+// Auth types
+export interface User {
+  id: number;
+  email: string;
+}
+
+export interface AuthStartRequest {
+  email: string;
+}
+
+export interface AuthVerifyRequest {
+  email: string;
+  code: string;
+}
+
+export interface AuthResponse {
+  message: string;
 }

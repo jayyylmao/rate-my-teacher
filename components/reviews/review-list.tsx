@@ -1,21 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import ReviewCard from "./review-card";
+import ReviewCard from "./review-card-new";
 import ReviewSort, { SortOption } from "./review-sort";
-import type { TagKey } from "@/lib/api/types";
-
-interface Review {
-  id: number;
-  rating: number;
-  comment: string;
-  reviewer_name: string;
-  created_at: string;
-  tags?: TagKey[];
-}
+import type { ReviewDTO } from "@/lib/api/types";
 
 interface ReviewListProps {
-  reviews: Review[];
+  reviews: ReviewDTO[];
 }
 
 export default function ReviewList({ reviews }: ReviewListProps) {
@@ -28,7 +19,7 @@ export default function ReviewList({ reviews }: ReviewListProps) {
       case "recent":
         return reviewsCopy.sort(
           (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       case "highest":
         return reviewsCopy.sort((a, b) => b.rating - a.rating);
@@ -79,14 +70,7 @@ export default function ReviewList({ reviews }: ReviewListProps) {
       {/* Reviews grid */}
       <div className="grid gap-4">
         {sortedReviews.map((review) => (
-          <ReviewCard
-            key={review.id}
-            rating={review.rating}
-            comment={review.comment}
-            reviewerName={review.reviewer_name}
-            createdAt={new Date(review.created_at)}
-            tags={review.tags}
-          />
+          <ReviewCard key={review.id} review={review} />
         ))}
       </div>
     </div>

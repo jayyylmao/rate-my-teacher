@@ -22,4 +22,73 @@ public interface InterviewExperienceRepository extends JpaRepository<InterviewEx
     List<InterviewExperience> findByCompanyContainingIgnoreCase(String company);
 
     List<InterviewExperience> findByRoleContainingIgnoreCase(String role);
+
+    @Query("""
+        SELECT i FROM InterviewExperience i
+        WHERE LOWER(i.company) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.role) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.level) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.location) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.stage) LIKE LOWER(CONCAT('%', :query, '%'))
+    """)
+    List<InterviewExperience> searchByQuery(@Param("query") String query);
+
+    /**
+     * Get all interviews with their review stats (count, avg rating, last review date)
+     * Only counts APPROVED reviews for public display
+     * Returns: [InterviewExperience, reviewCount, avgRating, lastReviewedAt]
+     */
+    @Query("""
+        SELECT i, COUNT(r.id), AVG(r.rating), MAX(r.createdAt)
+        FROM InterviewExperience i
+        LEFT JOIN i.reviews r ON r.status = 'APPROVED'
+        GROUP BY i.id
+    """)
+    List<Object[]> findAllWithStats();
+
+    /**
+     * Search interviews with their review stats
+     * Only counts APPROVED reviews for public display
+     * Returns: [InterviewExperience, reviewCount, avgRating, lastReviewedAt]
+     */
+    @Query("""
+        SELECT i, COUNT(r.id), AVG(r.rating), MAX(r.createdAt)
+        FROM InterviewExperience i
+        LEFT JOIN i.reviews r ON r.status = 'APPROVED'
+        WHERE LOWER(i.company) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.role) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.level) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.location) LIKE LOWER(CONCAT('%', :query, '%'))
+           OR LOWER(i.stage) LIKE LOWER(CONCAT('%', :query, '%'))
+        GROUP BY i.id
+    """)
+    List<Object[]> searchByQueryWithStats(@Param("query") String query);
+
+    /**
+     * Find interviews by company with stats
+     * Only counts APPROVED reviews for public display
+     * Returns: [InterviewExperience, reviewCount, avgRating, lastReviewedAt]
+     */
+    @Query("""
+        SELECT i, COUNT(r.id), AVG(r.rating), MAX(r.createdAt)
+        FROM InterviewExperience i
+        LEFT JOIN i.reviews r ON r.status = 'APPROVED'
+        WHERE LOWER(i.company) LIKE LOWER(CONCAT('%', :query, '%'))
+        GROUP BY i.id
+    """)
+    List<Object[]> findByCompanyWithStats(@Param("query") String query);
+
+    /**
+     * Find interviews by role with stats
+     * Only counts APPROVED reviews for public display
+     * Returns: [InterviewExperience, reviewCount, avgRating, lastReviewedAt]
+     */
+    @Query("""
+        SELECT i, COUNT(r.id), AVG(r.rating), MAX(r.createdAt)
+        FROM InterviewExperience i
+        LEFT JOIN i.reviews r ON r.status = 'APPROVED'
+        WHERE LOWER(i.role) LIKE LOWER(CONCAT('%', :query, '%'))
+        GROUP BY i.id
+    """)
+    List<Object[]> findByRoleWithStats(@Param("query") String query);
 }

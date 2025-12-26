@@ -1,5 +1,6 @@
 package com.ratemyteacher.controller;
 
+import com.ratemyteacher.dto.ListResponse;
 import com.ratemyteacher.dto.TagDTO;
 import com.ratemyteacher.entity.Tag;
 import com.ratemyteacher.repository.TagRepository;
@@ -27,7 +28,7 @@ public class TagsController {
      * GET /api/tags - Get all curated tags
      */
     @GetMapping
-    public ResponseEntity<List<TagDTO>> getTags() {
+    public ResponseEntity<ListResponse<TagDTO>> getTags() {
         log.info("GET /api/tags");
 
         List<Tag> tags = tagRepository.findAllByOrderByCategoryAscLabelAsc();
@@ -37,6 +38,6 @@ public class TagsController {
                 .collect(Collectors.toList());
 
         log.info("Returning {} tags", tagDTOs.size());
-        return ResponseEntity.ok(tagDTOs);
+        return ResponseEntity.ok(new ListResponse<>(tagDTOs));
     }
 }

@@ -1,4 +1,5 @@
 // Interview Experience API service
+import { cache } from 'react';
 import { apiClient } from './client';
 import type {
   StatsDTO,
@@ -14,10 +15,11 @@ import type {
 export const interviewApi = {
   /**
    * Get platform statistics (total interviews and reviews)
+   * Cached to avoid duplicate API calls
    */
-  async getStats(): Promise<StatsDTO> {
+  getStats: cache(async (): Promise<StatsDTO> => {
     return apiClient.get<StatsDTO>('/api/stats');
-  },
+  }),
 
   /**
    * List interview experiences with optional filters
@@ -46,11 +48,12 @@ export const interviewApi = {
 
   /**
    * Get a single interview experience by ID with reviews
+   * Cached to avoid duplicate API calls in metadata and page component
    */
-  async getInterviewById(
+  getInterviewById: cache(async (
     id: number | string,
     params?: GetInterviewDetailParams
-  ): Promise<InterviewDetailDTO> {
+  ): Promise<InterviewDetailDTO> => {
     const searchParams = new URLSearchParams();
 
     if (params?.reviewsSort) searchParams.set('reviewsSort', params.reviewsSort);
@@ -60,7 +63,7 @@ export const interviewApi = {
     const endpoint = `/api/interviews/${id}${query ? `?${query}` : ''}`;
 
     return apiClient.get<InterviewDetailDTO>(endpoint);
-  },
+  }),
 
   /**
    * Create a new interview experience
@@ -73,15 +76,22 @@ export const interviewApi = {
    * Add a review for an interview experience
    */
   async addReview(payload: AddReviewPayload): Promise<{ id: number }> {
-    return apiClient.post<{ id: number }>('/api/reviews', payload);
+    // Transform frontend 'tags' field to backend 'tagKeys' field
+    const { tags, ...rest } = payload;
+    const backendPayload = {
+      ...rest,
+      tagKeys: tags,
+    };
+    return apiClient.post<{ id: number }>('/api/reviews', backendPayload);
   },
 
   /**
    * Get all available tags with labels and categories
+   * Cached to avoid duplicate API calls
    */
-  async getTags(): Promise<{ items: TagDTO[] }> {
+  getTags: cache(async (): Promise<{ items: TagDTO[] }> => {
     return apiClient.get<{ items: TagDTO[] }>('/api/tags');
-  },
+  }),
 
   /**
    * Get recently reviewed interview experiences (for homepage)

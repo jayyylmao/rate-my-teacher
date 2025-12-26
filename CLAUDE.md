@@ -113,3 +113,29 @@ fly apps list               # List all Fly.io apps
 - Multi-region deployment info
 
 **Note**: The app is currently suspended. Use `fly scale count 1 -a rate-my-teacher` to resume or ask Claude to deploy/resume the app.
+
+### Notion MCP Integration
+
+The Notion MCP server (`notion-mcp`) is configured in Claude Desktop for workspace integration. This enables creating and managing Notion pages programmatically.
+
+**Known Issues**:
+- **Complex Object Parameters**: The MCP server has a bug handling complex nested object parameters (specifically those defined with `$ref` in JSON schemas)
+- When calling `post-page` with a `parent` parameter like `{"page_id": "..."}`, the server double-encodes it as a string instead of passing it as an object
+- **Error Example**: `body.parent should be an object or undefined, instead was "{\"page_id\": \"..."}"`
+
+**Workarounds**:
+1. Use existing empty pages and update them with `patch-page` instead of creating new pages
+2. Simple parameters like `properties` and `children` arrays work correctly
+3. Only the `parent` object parameter in `post-page` is affected
+
+**Working Operations**:
+- `post-search` - Search for pages and databases
+- `patch-page` - Update page title and properties
+- `patch-block-children` - Append content blocks to pages
+- `retrieve-a-page` - Get page details
+
+**Available Block Types** (Limited):
+- `paragraph` - Text paragraphs
+- `bulleted_list_item` - Bullet points
+
+Note: Headings, code blocks, and other rich block types are not currently supported by the MCP server's schema definitions.

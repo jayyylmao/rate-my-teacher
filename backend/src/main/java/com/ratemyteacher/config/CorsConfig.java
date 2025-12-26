@@ -16,6 +16,7 @@ public class CorsConfig {
                 registry.addMapping("/api/**")
                         .allowedOrigins(
                                 "https://hello-world-five-peach.vercel.app",
+                                "https://hello-world-1b64tbn5r-jays-projects-b4affa61.vercel.app",
                                 "http://localhost:3000",
                                 "http://localhost:3001",
                                 "http://localhost:8080"

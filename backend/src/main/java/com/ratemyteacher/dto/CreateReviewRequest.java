@@ -30,4 +30,13 @@ public class CreateReviewRequest {
 
     @Size(max = 5, message = "You may select up to 5 tags")
     private List<String> tagKeys;
+
+    private String roundType;
+
+    @Size(min = 2, max = 5, message = "Interviewer initials must be 2-4 letters")
+    @Pattern(regexp = "^[A-Za-z.\\s]*$", message = "Interviewer initials must contain only letters, dots, and spaces")
+    private String interviewerInitials;
+
+    @Pattern(regexp = "^(OFFER|REJECTED|WITHDREW)?$", message = "Outcome must be OFFER, REJECTED, or WITHDREW")
+    private String outcome;
 }

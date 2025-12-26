@@ -5,6 +5,7 @@ import com.ratemyteacher.dto.InterviewExperienceDTO;
 import com.ratemyteacher.dto.ReviewDTO;
 import com.ratemyteacher.entity.InterviewExperience;
 import com.ratemyteacher.entity.Review;
+import com.ratemyteacher.entity.ReviewStatus;
 import com.ratemyteacher.exception.ResourceNotFoundException;
 import com.ratemyteacher.repository.InterviewExperienceRepository;
 import com.ratemyteacher.repository.ReviewRepository;
@@ -26,6 +27,7 @@ public class InterviewExperienceService {
 
     private final InterviewExperienceRepository interviewRepo;
     private final ReviewRepository reviewRepo;
+    private final ReviewWeightingService weightingService;
 
     /**
      * Get all interview experiences with aggregate data
@@ -34,32 +36,40 @@ public class InterviewExperienceService {
     public List<InterviewExperienceDTO> getAllInterviews() {
         log.info("Fetching all interview experiences");
 
-        List<InterviewExperience> interviews = interviewRepo.findAll();
+        List<Object[]> results = interviewRepo.findAllWithStats();
 
-        return interviews.stream()
-                .map(this::mapWithAggregates)
+        return results.stream()
+                .map(this::mapFromStatsResult)
                 .collect(Collectors.toList());
     }
 
     /**
      * Get interview experience by ID with full details (reviews + breakdown)
+     * Returns the complete DTO including only APPROVED reviews and rating breakdown
+     * Uses weighted average for better aggregate ratings
      */
     @Transactional(readOnly = true)
     public InterviewExperienceDTO getInterviewById(Integer id) {
         log.info("Fetching interview experience with id: {}", id);
 
-        InterviewExperience interview = interviewRepo.findByIdWithReviews(id);
-        if (interview == null) {
-            throw new ResourceNotFoundException("InterviewExperience", id);
-        }
+        InterviewExperience interview = interviewRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("InterviewExperience", id));
 
-        // Get stats
-        List<Object[]> statsList = reviewRepo.statsForInterview(id);
+        // Get only APPROVED reviews for public display
+        List<Review> approvedReviews = reviewRepo.findByInterviewIdAndStatus(id, ReviewStatus.APPROVED);
+
+        // Get stats for APPROVED reviews only
+        List<Object[]> statsList = reviewRepo.statsForInterviewApproved(id);
         Object[] stats = !statsList.isEmpty() ? statsList.get(0) : new Object[]{0L, null, null};
         Map<Integer, Long> breakdown = mapBreakdown(reviewRepo.ratingBreakdown(id));
 
         InterviewExperienceDTO dto = mapWithStats(interview, stats);
-        dto.setReviews(interview.getReviews().stream()
+
+        // Use weighted average instead of simple average
+        Double weightedAvg = weightingService.calculateWeightedAverageRating(approvedReviews);
+        dto.setAverageRating(weightedAvg);
+
+        dto.setReviews(approvedReviews.stream()
                 .map(this::convertReview)
                 .collect(Collectors.toList()));
         dto.setRatingBreakdown(breakdown);
@@ -109,10 +119,10 @@ public class InterviewExperienceService {
     public List<InterviewExperienceDTO> searchByCompany(String company) {
         log.info("Searching interviews by company: {}", company);
 
-        List<InterviewExperience> interviews = interviewRepo.findByCompanyContainingIgnoreCase(company);
+        List<Object[]> results = interviewRepo.findByCompanyWithStats(company);
 
-        return interviews.stream()
-                .map(this::mapWithAggregates)
+        return results.stream()
+                .map(this::mapFromStatsResult)
                 .collect(Collectors.toList());
     }
 
@@ -123,14 +133,53 @@ public class InterviewExperienceService {
     public List<InterviewExperienceDTO> searchByRole(String role) {
         log.info("Searching interviews by role: {}", role);
 
-        List<InterviewExperience> interviews = interviewRepo.findByRoleContainingIgnoreCase(role);
+        List<Object[]> results = interviewRepo.findByRoleWithStats(role);
 
-        return interviews.stream()
-                .map(this::mapWithAggregates)
+        return results.stream()
+                .map(this::mapFromStatsResult)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Search interviews by query (searches across company, role, level, location, stage)
+     */
+    @Transactional(readOnly = true)
+    public List<InterviewExperienceDTO> searchByQuery(String query) {
+        log.info("Searching interviews by query: {}", query);
+
+        List<Object[]> results = interviewRepo.searchByQueryWithStats(query);
+
+        return results.stream()
+                .map(this::mapFromStatsResult)
                 .collect(Collectors.toList());
     }
 
     // Helper methods
+
+    /**
+     * Map query result with stats to DTO
+     * Result format: [InterviewExperience, reviewCount, avgRating, lastReviewedAt]
+     */
+    private InterviewExperienceDTO mapFromStatsResult(Object[] result) {
+        InterviewExperience interview = (InterviewExperience) result[0];
+        Long reviewCount = result[1] != null ? ((Number) result[1]).longValue() : 0L;
+        Double avgRating = result[2] != null ? ((Number) result[2]).doubleValue() : null;
+        LocalDateTime lastReviewedAt = result[3] != null ? (LocalDateTime) result[3] : null;
+
+        InterviewExperienceDTO dto = new InterviewExperienceDTO();
+        dto.setId(interview.getId());
+        dto.setCompany(interview.getCompany());
+        dto.setRole(interview.getRole());
+        dto.setLevel(interview.getLevel());
+        dto.setStage(interview.getStage());
+        dto.setLocation(interview.getLocation());
+        dto.setCreatedAt(interview.getCreatedAt());
+        dto.setAverageRating(avgRating);
+        dto.setReviewCount(reviewCount.intValue());
+        dto.setLastReviewedAt(lastReviewedAt);
+
+        return dto;
+    }
 
     private InterviewExperienceDTO mapWithAggregates(InterviewExperience interview) {
         List<Object[]> statsList = reviewRepo.statsForInterview(interview.getId());
@@ -169,16 +218,21 @@ public class InterviewExperienceService {
     }
 
     private ReviewDTO convertReview(Review review) {
-        return new ReviewDTO(
-                review.getId(),
-                review.getInterviewExperience().getId(),
-                review.getRating(),
-                review.getComment(),
-                review.getReviewerName(),
-                review.getCreatedAt(),
-                review.getTags().stream()
-                        .map(tag -> tag.getKey())
-                        .collect(Collectors.toList())
-        );
+        ReviewDTO dto = new ReviewDTO();
+        dto.setId(review.getId());
+        dto.setInterviewId(review.getInterviewExperience().getId());
+        dto.setRating(review.getRating());
+        dto.setComment(review.getComment());
+        dto.setReviewerName(review.getReviewerName());
+        dto.setCreatedAt(review.getCreatedAt());
+        dto.setTags(review.getTags().stream()
+                .map(tag -> tag.getKey())
+                .collect(Collectors.toList()));
+        dto.setRoundType(review.getRoundType());
+        dto.setInterviewerInitials(review.getInterviewerInitials());
+        dto.setOutcome(review.getOutcome() != null ? review.getOutcome().name() : null);
+        dto.setStatus(review.getStatus() != null ? review.getStatus().name() : "APPROVED");
+        dto.setApprovedAt(review.getApprovedAt());
+        return dto;
     }
 }

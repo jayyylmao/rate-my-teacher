@@ -5,6 +5,9 @@ import Button from "@/components/ui/button";
 import { interviewApi } from "@/lib/api/interviews";
 import type { InterviewExperienceDTO } from "@/lib/api/types";
 
+// Force dynamic rendering to always fetch fresh data
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   // Fetch data from API
   let totalInterviews = 0;

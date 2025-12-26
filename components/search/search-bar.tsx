@@ -9,7 +9,7 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({
-  placeholder = "Search for teachers...",
+  placeholder = "Search for companies...",
   defaultValue = "",
 }: SearchBarProps) {
   const router = useRouter();

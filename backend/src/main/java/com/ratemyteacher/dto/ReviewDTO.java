@@ -18,4 +18,9 @@ public class ReviewDTO {
     private String reviewerName;
     private LocalDateTime createdAt;
     private List<String> tags;
+    private String roundType;
+    private String interviewerInitials;
+    private String outcome;
+    private String status;
+    private LocalDateTime approvedAt;
 }

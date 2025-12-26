@@ -1,13 +1,16 @@
 package com.ratemyteacher.controller;
 
+import com.ratemyteacher.auth.AppPrincipal;
 import com.ratemyteacher.dto.CreateReviewRequest;
 import com.ratemyteacher.dto.ReviewDTO;
+import com.ratemyteacher.dto.UpdateReviewRequest;
 import com.ratemyteacher.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -63,12 +66,41 @@ public class ReviewController {
 
     /**
      * POST /api/reviews - Create a new review
+     * Supports both guest and authenticated submissions.
+     * If authenticated, the review is linked to the user's account.
      */
     @PostMapping
-    public ResponseEntity<ReviewDTO> createReview(@Valid @RequestBody CreateReviewRequest request) {
-        log.info("POST /api/reviews - Creating review for interview id: {}", request.getInterviewId());
-        ReviewDTO createdReview = reviewService.createReview(request);
+    public ResponseEntity<ReviewDTO> createReview(
+            @Valid @RequestBody CreateReviewRequest request,
+            @RequestHeader(value = "X-User-Identifier", required = false) String userIdentifier,
+            Authentication authentication) {
+
+        // Extract user ID if authenticated
+        Long authorUserId = null;
+        if (authentication != null && authentication.getPrincipal() instanceof AppPrincipal) {
+            AppPrincipal principal = (AppPrincipal) authentication.getPrincipal();
+            authorUserId = principal.getUserId();
+            log.info("POST /api/reviews - Creating review for interview id: {} (authenticated user: {})",
+                    request.getInterviewId(), authorUserId);
+        } else {
+            log.info("POST /api/reviews - Creating review for interview id: {} (guest)",
+                    request.getInterviewId());
+        }
+
+        ReviewDTO createdReview = reviewService.createReview(request, userIdentifier, authorUserId);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdReview);
+    }
+
+    /**
+     * PUT /api/reviews/{id} - Update an existing review (only if PENDING)
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<ReviewDTO> updateReview(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateReviewRequest request) {
+        log.info("PUT /api/reviews/{} - Updating review", id);
+        ReviewDTO updatedReview = reviewService.updateReview(id, request);
+        return ResponseEntity.ok(updatedReview);
     }
 
     /**
