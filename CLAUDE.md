@@ -75,3 +75,41 @@ The database has two main tables:
 ### Dependencies Note
 
 `@supabase/supabase-js` is installed but not currently integrated into the application. The database connection uses direct PostgreSQL via Drizzle ORM instead of Supabase client libraries.
+
+## Deployment
+
+### Fly.io Configuration
+
+**App Name**: rate-my-teacher
+**Hostname**: rate-my-teacher.fly.dev
+**Region**: ewr (New Jersey)
+**Resources**: 2 VMs, 1 CPU, 1024 MB each
+
+**Fly Account**: jayyylmao88@gmail.com
+
+### Fly.io Commands
+```bash
+fly status -a rate-my-teacher     # Check app status
+fly logs -a rate-my-teacher       # View logs
+fly scale show -a rate-my-teacher # Show resource allocation
+fly deploy                        # Deploy latest code
+```
+
+### MCP Integration (Model Context Protocol)
+
+The flyctl MCP server has been configured in Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json`). This provides Claude with direct access to Fly.io commands.
+
+**Testing MCP Server**:
+```bash
+fly mcp server --inspector  # Launch MCP inspector UI
+fly apps list               # List all Fly.io apps
+```
+
+**Available MCP Capabilities**:
+- Real-time app status monitoring
+- Log streaming and analysis
+- Resource scaling
+- Machine management
+- Multi-region deployment info
+
+**Note**: The app is currently suspended. Use `fly scale count 1 -a rate-my-teacher` to resume or ask Claude to deploy/resume the app.

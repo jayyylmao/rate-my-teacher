@@ -1,0 +1,201 @@
+### Rate My Teacher API - HTTP Examples
+### Use this file with REST Client extension in VS Code or IntelliJ IDEA
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### Health Check
+GET {{baseUrl}}/api/health
+
+### ============================================
+### TEACHERS API
+### ============================================
+
+### Get All Teachers
+GET {{baseUrl}}/api/teachers
+
+### Get Teachers by Department
+GET {{baseUrl}}/api/teachers?department=Engineering
+
+### Get Teachers by Subject
+GET {{baseUrl}}/api/teachers?subject=Computer Science
+
+### Get Teacher by ID
+GET {{baseUrl}}/api/teachers/1
+
+### Search Teachers by Name
+GET {{baseUrl}}/api/teachers/search?name=Smith
+
+### Get Average Rating for Teacher
+GET {{baseUrl}}/api/teachers/1/average-rating
+
+### Create Teacher
+POST {{baseUrl}}/api/teachers
+Content-Type: {{contentType}}
+
+{
+  "name": "Dr. John Smith",
+  "subject": "Computer Science",
+  "department": "Engineering"
+}
+
+### Create Another Teacher
+POST {{baseUrl}}/api/teachers
+Content-Type: {{contentType}}
+
+{
+  "name": "Prof. Emily Johnson",
+  "subject": "Mathematics",
+  "department": "Science"
+}
+
+### Create Teacher with only required fields
+POST {{baseUrl}}/api/teachers
+Content-Type: {{contentType}}
+
+{
+  "name": "Dr. Sarah Williams",
+  "subject": "Physics"
+}
+
+### Update Teacher
+PUT {{baseUrl}}/api/teachers/1
+Content-Type: {{contentType}}
+
+{
+  "name": "Dr. John Smith Jr.",
+  "subject": "Advanced Computer Science",
+  "department": "Engineering"
+}
+
+### Delete Teacher
+DELETE {{baseUrl}}/api/teachers/999
+
+### ============================================
+### REVIEWS API
+### ============================================
+
+### Get All Reviews
+GET {{baseUrl}}/api/reviews
+
+### Get Reviews by Rating
+GET {{baseUrl}}/api/reviews?rating=5
+
+### Get Review by ID
+GET {{baseUrl}}/api/reviews/1
+
+### Get Reviews for Teacher
+GET {{baseUrl}}/api/reviews/teacher/1
+
+### Create Review (5 stars)
+POST {{baseUrl}}/api/reviews
+Content-Type: {{contentType}}
+
+{
+  "teacherId": 1,
+  "rating": 5,
+  "comment": "Excellent professor! Very clear explanations and always available for help. The course material was well-organized and engaging.",
+  "reviewerName": "John Doe"
+}
+
+### Create Review (4 stars)
+POST {{baseUrl}}/api/reviews
+Content-Type: {{contentType}}
+
+{
+  "teacherId": 1,
+  "rating": 4,
+  "comment": "Good teacher overall. Sometimes moves a bit fast through material, but very knowledgeable and helpful during office hours.",
+  "reviewerName": "Jane Smith"
+}
+
+### Create Review (3 stars)
+POST {{baseUrl}}/api/reviews
+Content-Type: {{contentType}}
+
+{
+  "teacherId": 1,
+  "rating": 3,
+  "comment": "Average experience. The content was fine but the lectures could be more engaging. Fair grading though.",
+  "reviewerName": "Bob Johnson"
+}
+
+### Delete Review
+DELETE {{baseUrl}}/api/reviews/1
+
+### ============================================
+### ERROR HANDLING TESTS
+### ============================================
+
+### Test 404 - Teacher Not Found
+GET {{baseUrl}}/api/teachers/99999
+
+### Test 404 - Review Not Found
+GET {{baseUrl}}/api/reviews/99999
+
+### Test Validation Error - Invalid Rating (too high)
+POST {{baseUrl}}/api/reviews
+Content-Type: {{contentType}}
+
+{
+  "teacherId": 1,
+  "rating": 10,
+  "comment": "This should fail validation",
+  "reviewerName": "Test User"
+}
+
+### Test Validation Error - Invalid Rating (too low)
+POST {{baseUrl}}/api/reviews
+Content-Type: {{contentType}}
+
+{
+  "teacherId": 1,
+  "rating": 0,
+  "comment": "This should also fail validation",
+  "reviewerName": "Test User"
+}
+
+### Test Validation Error - Comment Too Short
+POST {{baseUrl}}/api/reviews
+Content-Type: {{contentType}}
+
+{
+  "teacherId": 1,
+  "rating": 5,
+  "comment": "Too short",
+  "reviewerName": "Test User"
+}
+
+### Test Validation Error - Missing Required Fields
+POST {{baseUrl}}/api/teachers
+Content-Type: {{contentType}}
+
+{
+  "department": "Engineering"
+}
+
+### Test Validation Error - Review for Non-existent Teacher
+POST {{baseUrl}}/api/reviews
+Content-Type: {{contentType}}
+
+{
+  "teacherId": 99999,
+  "rating": 5,
+  "comment": "This teacher doesn't exist so it should fail",
+  "reviewerName": "Test User"
+}
+
+### ============================================
+### PRODUCTION ENDPOINTS (Fly.io)
+### ============================================
+
+@prodUrl = https://rate-my-teacher-api.fly.dev
+
+### Health Check (Production)
+GET {{prodUrl}}/api/health
+
+### Get All Teachers (Production)
+GET {{prodUrl}}/api/teachers
+
+### Get All Reviews (Production)
+GET {{prodUrl}}/api/reviews
