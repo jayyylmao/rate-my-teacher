@@ -117,15 +117,6 @@ export default async function InterviewProfilePage({ params }: PageProps) {
     .slice(0, 6)
     .map(([tag, count]) => ({ tag, count }));
 
-  // Debug info
-  const debugInfo = {
-    reviewsCount: reviews.length,
-    reviewsWithTags: reviews.filter(r => r.tags && r.tags.length > 0).length,
-    tagCounts: Object.fromEntries(tagCounts),
-    topTags: topTags,
-    allReviewTags: reviews.map(r => ({ id: r.id, tags: r.tags }))
-  };
-
   // Categorize tags by sentiment
   const positiveTags = ['PROMPT_FEEDBACK', 'WELL_ORGANIZED'];
   const negativeTags = ['GHOST_JOB', 'NO_FEEDBACK', 'LONG_PROCESS', 'UNREASONABLE_DIFFICULTY', 'MISALIGNED_ROLE', 'DISRESPECTFUL'];
@@ -221,16 +212,6 @@ export default async function InterviewProfilePage({ params }: PageProps) {
               Reported experiences vary by role, timing, and interviewer.
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* DEBUG PANEL - REMOVE AFTER DEBUGGING */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
-          <h3 className="font-bold text-yellow-900 mb-2">🐛 DEBUG INFO</h3>
-          <pre className="text-xs overflow-auto bg-white p-2 rounded">
-            {JSON.stringify(debugInfo, null, 2)}
-          </pre>
         </div>
       </div>
 
