@@ -1,6 +1,8 @@
 package com.ratemyteacher.auth;
 
+import com.ratemyteacher.service.EmailService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,14 +29,20 @@ public class AuthService {
     private final AuthChallengeRepository challengeRepository;
     private final UserRepository userRepository;
     private final SessionService sessionService;
+    private final EmailService emailService;
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfile;
 
     public AuthService(
             AuthChallengeRepository challengeRepository,
             UserRepository userRepository,
-            SessionService sessionService) {
+            SessionService sessionService,
+            EmailService emailService) {
         this.challengeRepository = challengeRepository;
         this.userRepository = userRepository;
         this.sessionService = sessionService;
+        this.emailService = emailService;
     }
 
     /**
@@ -60,11 +68,17 @@ public class AuthService {
         );
         challengeRepository.save(challenge);
 
-        // MVP: Log OTP instead of sending email
-        // TODO: Integrate email service (SendGrid, SES, etc.)
-        log.info("========================================");
-        log.info("OTP for {}: {}", normalizedEmail, otp);
-        log.info("========================================");
+        // Send OTP via email
+        boolean emailSent = emailService.sendOtpEmail(normalizedEmail, otp);
+        if (!emailSent) {
+            log.error("Failed to send OTP email to {}", normalizedEmail);
+            // Fallback: log to console in development
+            if (isDevelopment()) {
+                log.info("========================================");
+                log.info("OTP for {}: {}", normalizedEmail, otp);
+                log.info("========================================");
+            }
+        }
 
         return true;
     }
@@ -164,5 +178,12 @@ public class AuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
+    }
+
+    /**
+     * Check if running in development mode.
+     */
+    private boolean isDevelopment() {
+        return "dev".equals(activeProfile) || activeProfile.isBlank();
     }
 }
