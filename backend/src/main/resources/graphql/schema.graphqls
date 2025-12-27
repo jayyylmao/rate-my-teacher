@@ -1,35 +1,39 @@
 type Query {
-  interviewDetail(id: ID!): InterviewDetailResponse!
+  # Single interview with nested reviews + breakdown (detail page)
+  interview(id: ID!): Interview
+
+  # Interview list (summaries only, no nested reviews)
+  interviews(
+    q: String
+    company: String
+    role: String
+    level: String
+    stage: String
+    location: String
+    sort: String
+    limit: Int
+  ): InterviewsResponse!
+
+  # Company insights for an interview (gated by contribution)
+  insights(interviewId: ID!): Insights!
+
+  tags: TagsResponse!
   me: Me
   stats: PlatformStats!
 }
 
-type PlatformStats {
-  totalInterviews: Int!
-  totalReviews: Int!
+type Mutation {
+  # Returns minimal response - client should refetch interview query on success
+  createReview(input: CreateReviewInput!): CreateReviewResponse!
+  updateReview(id: ID!, input: UpdateReviewInput!): UpdateReviewResponse!
+  deleteReview(id: ID!): DeleteResponse!
 }
 
-type Me {
-  id: ID!
-  email: String!
-  roles: [String!]!
-  myReviews: MyReviewsResponse!
-}
+# ─────────────────────────────────────────────────────────────
+# Interview Types
+# ─────────────────────────────────────────────────────────────
 
-type MyReviewsResponse {
-  items: [Review!]!
-  count: Int!
-}
-
-# Mirrors InterviewDetailResponse DTO
-type InterviewDetailResponse {
-  interview: InterviewExperience!
-  reviews: [Review!]!
-  ratingBreakdown: [RatingCount!]!
-}
-
-# Mirrors InterviewExperienceDTO (minus detail-only extras except breakdown)
-type InterviewExperience {
+type Interview {
   id: ID!
   company: String!
   role: String!
@@ -37,9 +41,21 @@ type InterviewExperience {
   stage: String
   location: String
   createdAt: String!
+
+  # Aggregates (always available)
   averageRating: Float
   reviewCount: Int!
   lastReviewedAt: String
+
+  # Nested fields (resolved on demand for detail page)
+  reviews: [Review!]!  # Deprecated: Use reviewsConnection for pagination
+  reviewsConnection(first: Int, after: String, sort: ReviewSort): ReviewConnection!
+  ratingBreakdown: [RatingCount!]!
+}
+
+type InterviewsResponse {
+  items: [Interview!]!
+  nextCursor: String
 }
 
 type RatingCount {
@@ -47,8 +63,50 @@ type RatingCount {
   count: Int!
 }
 
-# Mirrors ReviewDTO
+# Cursor-based pagination for reviews (mobile-friendly)
+type ReviewConnection {
+  edges: [ReviewEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewEdge {
+  node: Review!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+enum ReviewSort {
+  RECENT
+  HIGHEST
+  LOWEST
+}
+
+# ─────────────────────────────────────────────────────────────
+# Review Types
+# ─────────────────────────────────────────────────────────────
+
 type Review {
+  id: ID!
+  rating: Int!
+  comment: String!
+  reviewerName: String!
+  createdAt: String!
+  tags: [String!]!
+  roundType: String
+  interviewerInitials: String
+  outcome: String
+  # Note: status/approvedAt only exposed in MyReviews, not public reviews
+}
+
+# For My Reviews (includes moderation status)
+type MyReview {
   id: ID!
   interviewId: ID!
   rating: Int!
@@ -61,4 +119,126 @@ type Review {
   outcome: String
   status: String!
   approvedAt: String
+
+  # Nested interview (for mobile convenience)
+  interview: Interview!
+}
+
+# ─────────────────────────────────────────────────────────────
+# Mutation Inputs & Responses
+# ─────────────────────────────────────────────────────────────
+
+input CreateReviewInput {
+  interviewId: ID!
+  rating: Int!
+  comment: String!
+  reviewerName: String!
+  roundType: String!
+  tagKeys: [String!]
+  interviewerInitials: String
+  outcome: String
+}
+
+input UpdateReviewInput {
+  rating: Int!
+  comment: String!
+  reviewerName: String!
+  roundType: String!
+  tagKeys: [String!]
+  interviewerInitials: String
+  outcome: String
+}
+
+# Minimal mutation responses - client refetches as needed
+type CreateReviewResponse {
+  id: ID!
+  status: String!
+}
+
+type UpdateReviewResponse {
+  id: ID!
+  status: String!
+}
+
+type DeleteResponse {
+  success: Boolean!
+}
+
+# ─────────────────────────────────────────────────────────────
+# Auth & User Types
+# ─────────────────────────────────────────────────────────────
+
+type Me {
+  id: ID!
+  email: String!
+  roles: [String!]!
+  myReviews: MyReviewsResponse!
+}
+
+type MyReviewsResponse {
+  items: [MyReview!]!
+  count: Int!
+}
+
+# ─────────────────────────────────────────────────────────────
+# Reference Data
+# ─────────────────────────────────────────────────────────────
+
+type TagsResponse {
+  items: [Tag!]!
+}
+
+type Tag {
+  key: String!
+  label: String!
+  category: String!
+}
+
+type PlatformStats {
+  totalInterviews: Int!
+  totalReviews: Int!
+}
+
+# ─────────────────────────────────────────────────────────────
+# Company Insights
+# ─────────────────────────────────────────────────────────────
+
+# Union type for insights - either full or preview based on contribution status
+type Insights {
+  # Always available
+  companyName: String!
+  totalReviews: Int!
+  locked: Boolean!
+
+  # Only available when unlocked (locked=false)
+  tagDistribution: [TagDistribution!]
+  averageDifficulty: Float
+  feedbackSpeed: String
+  commonFeedback: [String!]
+  outcomeDistribution: [OutcomeDistribution!]
+  recentTrend: Trend
+
+  # Only available when locked (locked=true)
+  unlockMessage: String
+  availableInsightsCount: Int
+  topTagsBlurred: [String!]
+}
+
+type TagDistribution {
+  tag: String!
+  percentage: Float!
+}
+
+type OutcomeDistribution {
+  outcome: String!
+  percentage: Float!
+}
+
+type Trend {
+  recentAverageRating: Float!
+  olderAverageRating: Float!
+  ratingChange: Float!
+  direction: String!
+  recentReviewCount: Int!
+  olderReviewCount: Int!
 }

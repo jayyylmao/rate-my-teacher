@@ -117,6 +117,22 @@ export interface AddReviewPayload {
   structuredRatings?: StructuredRatings;
 }
 
+export interface UpdateReviewPayload {
+  rating: number;
+  comment: string;
+  reviewerName: string;
+  tags: TagKey[];
+  roundType: string;
+  interviewerInitials?: string;
+  outcome?: ReviewOutcome;
+}
+
+export interface MyReviewDTO extends ReviewDTO {
+  rejectionReason?: string | null;
+  interviewCompany?: string;
+  interviewRole?: string;
+}
+
 // Auth types
 export type UserRole = "ROLE_ADMIN" | "ROLE_MODERATOR";
 
@@ -137,4 +153,47 @@ export interface AuthVerifyRequest {
 
 export interface AuthResponse {
   message: string;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Company Insights Types
+// ─────────────────────────────────────────────────────────────
+
+export interface TagDistribution {
+  tag: string;
+  percentage: number;
+}
+
+export interface OutcomeDistribution {
+  outcome: string;
+  percentage: number;
+}
+
+export interface Trend {
+  recentAverageRating: number;
+  olderAverageRating: number;
+  ratingChange: number;
+  direction: "improving" | "stable" | "declining";
+  recentReviewCount: number;
+  olderReviewCount: number;
+}
+
+export interface InsightsDTO {
+  // Always available
+  companyName: string;
+  totalReviews: number;
+  locked: boolean;
+
+  // Only when unlocked
+  tagDistribution?: TagDistribution[];
+  averageDifficulty?: number;
+  feedbackSpeed?: string;
+  commonFeedback?: string[];
+  outcomeDistribution?: OutcomeDistribution[];
+  recentTrend?: Trend;
+
+  // Only when locked
+  unlockMessage?: string;
+  availableInsightsCount?: number;
+  topTagsBlurred?: string[];
 }

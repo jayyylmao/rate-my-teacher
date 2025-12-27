@@ -3,11 +3,11 @@ package com.ratemyteacher.graphql.model;
 import java.util.List;
 
 /**
- * GraphQL Review type for public display.
- * Does NOT include status or approvedAt - those are only in MyReview.
+ * GraphQL MyReview type - includes moderation status for user's own reviews.
  */
-public record ReviewGql(
+public record MyReviewGql(
         int id,
+        int interviewId,
         int rating,
         String comment,
         String reviewerName,
@@ -15,5 +15,7 @@ public record ReviewGql(
         List<String> tags,
         String roundType,
         String interviewerInitials,
-        String outcome
+        String outcome,
+        String status,
+        String approvedAt
 ) {}

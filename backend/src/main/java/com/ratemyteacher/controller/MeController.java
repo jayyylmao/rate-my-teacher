@@ -46,28 +46,14 @@ public class MeController {
         ));
     }
 
-    /**
-     * GET /api/my/reviews
-     * Returns all reviews submitted by the authenticated user.
-     * Includes pending, approved, and rejected reviews.
-     */
-    @GetMapping("/my/reviews")
-    public ResponseEntity<Map<String, Object>> myReviews(Authentication authentication) {
-        AppPrincipal principal = (AppPrincipal) authentication.getPrincipal();
-
-        log.info("GET /api/my/reviews for user {}", principal.getUserId());
-
-        List<Review> reviews = reviewRepository.findByAuthorUserId(principal.getUserId());
-
-        List<ReviewDTO> reviewDTOs = reviews.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(Map.of(
-                "items", reviewDTOs,
-                "count", reviewDTOs.size()
-        ));
-    }
+    // ─────────────────────────────────────────────────────────────
+    // KILL TEST: REST endpoint disabled - use GraphQL instead
+    // Query: me { myReviews { items { ... } count } }
+    // ─────────────────────────────────────────────────────────────
+    // @GetMapping("/my/reviews")
+    // public ResponseEntity<Map<String, Object>> myReviews(Authentication authentication) {
+    //     -- REMOVED: Use GraphQL query instead --
+    // }
 
     private ReviewDTO convertToDTO(Review review) {
         ReviewDTO dto = new ReviewDTO();

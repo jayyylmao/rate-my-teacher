@@ -110,7 +110,8 @@ public class ReviewModerationService {
 
     /**
      * Approve a review (called by auto-approve).
-     * Sets status to APPROVED and records the approval timestamp.
+     * Sets status to APPROVED, records the approval timestamp, and awards contribution
+     * for authenticated users to unlock insights.
      *
      * @param review The review to approve
      */
@@ -120,11 +121,15 @@ public class ReviewModerationService {
         review.setModeratedAt(LocalDateTime.now());
         review.setRejectionReason(null);
         log.info("Review {} auto-approved", review.getId());
+
+        // Award contribution for insights unlocking (authenticated users only)
+        awardContributionIfAuthenticated(review);
     }
 
     /**
      * Approve a review by a moderator.
-     * Sets status to APPROVED, records approval timestamp and moderator info.
+     * Sets status to APPROVED, records approval timestamp and moderator info,
+     * and awards contribution for authenticated users.
      *
      * @param review The review to approve
      * @param moderatorUserId The user ID of the moderator performing the action
@@ -136,29 +141,47 @@ public class ReviewModerationService {
         review.setModeratedAt(LocalDateTime.now());
         review.setRejectionReason(null);
         log.info("Review {} approved by moderator {}", review.getId(), moderatorUserId);
+
+        // Award contribution for insights unlocking (authenticated users only)
+        awardContributionIfAuthenticated(review);
     }
 
     /**
-     * Approve a review and record user contribution for insights unlocking.
-     * Sets status to APPROVED, records the approval timestamp, and creates contribution record.
-     *
-     * @param review The review to approve
-     * @param userIdentifier The user's identifier for contribution tracking (nullable)
+     * @deprecated Use approveReview(Review) or approveReview(Review, Long) instead.
+     * This method is kept for backwards compatibility during transition.
      */
+    @Deprecated
     public void approveReview(Review review, String userIdentifier) {
         review.setStatus(ReviewStatus.APPROVED);
         review.setApprovedAt(LocalDateTime.now());
-        log.info("Review {} approved", review.getId());
+        log.info("Review {} approved (legacy path)", review.getId());
 
-        // Record contribution to unlock insights
+        // Record contribution to unlock insights using legacy identifier
         if (userIdentifier != null && !userIdentifier.isBlank()) {
             recordContribution(userIdentifier, review);
         }
     }
 
     /**
+     * Award a contribution for insights unlocking if the review author is authenticated.
+     * Uses the review's authorUserId as the user identifier.
+     *
+     * @param review The approved review
+     */
+    private void awardContributionIfAuthenticated(Review review) {
+        if (review.getAuthorUserId() == null) {
+            log.debug("Review {} is from guest, no contribution awarded", review.getId());
+            return;
+        }
+
+        // Use authorUserId as string identifier for contribution tracking
+        String userIdentifier = review.getAuthorUserId().toString();
+        recordContribution(userIdentifier, review);
+    }
+
+    /**
      * Record a user contribution when their review is approved.
-     * This unlocks insights for the user for that company.
+     * This unlocks insights for the user for that interview experience.
      */
     private void recordContribution(String userIdentifier, Review review) {
         Integer interviewId = review.getInterviewExperience().getId();

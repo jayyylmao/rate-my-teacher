@@ -1,5 +1,6 @@
 package com.ratemyteacher.dto;
 
+import com.ratemyteacher.entity.ReviewOutcome;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,22 +23,26 @@ public class UpdateReviewRequest {
     private Integer rating;
 
     @NotBlank(message = "Comment is required")
-    @Size(min = 10, max = 2000, message = "Comment must be between 10 and 2000 characters")
+    @Size(min = 80, max = 2000, message = "Comment must be between 80 and 2000 characters")
     private String comment;
 
     @NotBlank(message = "Reviewer name is required")
     @Size(min = 2, max = 255, message = "Reviewer name must be between 2 and 255 characters")
     private String reviewerName;
 
+    @NotBlank(message = "Round type is required")
+    @Size(max = 100, message = "Round type must be at most 100 characters")
+    private String roundType;
+
     @Size(max = 5, message = "You may select up to 5 tags")
     private List<String> tagKeys;
 
-    private String roundType;
-
     @Size(min = 2, max = 5, message = "Interviewer initials must be 2-4 letters")
-    @Pattern(regexp = "^[A-Za-z.\\s]*$", message = "Interviewer initials must contain only letters, dots, and spaces")
+    @Pattern(
+            regexp = "^[A-Za-z.\\s]*$",
+            message = "Interviewer initials must contain only letters, dots, and spaces"
+    )
     private String interviewerInitials;
 
-    @Pattern(regexp = "^(OFFER|REJECTED|WITHDREW)?$", message = "Outcome must be OFFER, REJECTED, or WITHDREW")
-    private String outcome;
+    private ReviewOutcome outcome;
 }

@@ -50,38 +50,14 @@ public class InterviewExperienceController {
         return ResponseEntity.ok(new ListResponse<>(interviews));
     }
 
-    /**
-     * GET /api/interviews/{id} - Get interview experience by ID with reviews
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<InterviewDetailResponse> getInterviewById(@PathVariable Integer id) {
-        log.info("GET /api/interviews/{}", id);
-
-        InterviewExperienceDTO dto = interviewService.getInterviewById(id);
-
-        // Wrap the response to match frontend expectations
-        InterviewDetailResponse response = new InterviewDetailResponse();
-
-        // Create a copy without reviews/breakdown for the nested interview object
-        InterviewExperienceDTO interviewOnly = new InterviewExperienceDTO();
-        interviewOnly.setId(dto.getId());
-        interviewOnly.setCompany(dto.getCompany());
-        interviewOnly.setRole(dto.getRole());
-        interviewOnly.setLevel(dto.getLevel());
-        interviewOnly.setStage(dto.getStage());
-        interviewOnly.setLocation(dto.getLocation());
-        interviewOnly.setCreatedAt(dto.getCreatedAt());
-        interviewOnly.setAverageRating(dto.getAverageRating());
-        interviewOnly.setReviewCount(dto.getReviewCount());
-        interviewOnly.setLastReviewedAt(dto.getLastReviewedAt());
-
-        response.setInterview(interviewOnly);
-        response.setReviews(dto.getReviews());
-        response.setRatingBreakdown(dto.getRatingBreakdown());
-
-        log.info("Returning interview experience: {} - {}", dto.getCompany(), dto.getRole());
-        return ResponseEntity.ok(response);
-    }
+    // ─────────────────────────────────────────────────────────────
+    // KILL TEST: REST endpoint disabled - use GraphQL instead
+    // Query: interview(id: ID!) { ... reviews { ... } ratingBreakdown { ... } }
+    // ─────────────────────────────────────────────────────────────
+    // @GetMapping("/{id}")
+    // public ResponseEntity<InterviewDetailResponse> getInterviewById(@PathVariable Integer id) {
+    //     -- REMOVED: Use GraphQL query instead --
+    // }
 
     /**
      * POST /api/interviews - Create new interview experience

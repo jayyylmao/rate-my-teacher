@@ -104,7 +104,7 @@ public class ReviewService {
                 request.getInterviewId(), authorUserId);
 
         // Run content validation guardrails before any database operations
-        validateRequiredFields(request);
+        // Note: roundType is now enforced at DTO level via @NotBlank
         validateNoFullNames(request.getComment(), request.getInterviewerInitials());
         validateNoContactInfo(request.getComment());
         validateNoUrls(request.getComment());
@@ -119,14 +119,12 @@ public class ReviewService {
         review.setComment(request.getComment());
         review.setReviewerName(request.getReviewerName());
 
-        // Set optional fields
+        // Set required and optional fields
         review.setRoundType(request.getRoundType());
         review.setInterviewerInitials(normalizeInitials(request.getInterviewerInitials()));
 
-        // Set outcome if provided
-        if (request.getOutcome() != null && !request.getOutcome().isBlank()) {
-            review.setOutcome(ReviewOutcome.valueOf(request.getOutcome()));
-        }
+        // Set outcome if provided (now an enum, no parsing needed)
+        review.setOutcome(request.getOutcome());
 
         // Set author type and user ID
         if (authorUserId != null) {
@@ -157,7 +155,8 @@ public class ReviewService {
         // Check if should auto-approve
         if (moderationService.shouldAutoApprove(savedReview) &&
                 !moderationService.needsManualReview(savedReview)) {
-            moderationService.approveReview(savedReview, userIdentifier);
+            // Uses review's authorUserId internally for contribution tracking
+            moderationService.approveReview(savedReview);
             savedReview = reviewRepository.save(savedReview);
             log.info("Review {} auto-approved", savedReview.getId());
         } else {
@@ -169,18 +168,28 @@ public class ReviewService {
 
     /**
      * Update an existing review (only allowed for PENDING reviews).
+     * Only authenticated users can edit their own reviews. Guest reviews cannot be edited.
      *
      * @param id The review ID to update
      * @param request The update request with new values
+     * @param callerUserId The ID of the user attempting to update (from auth context)
      * @return The updated review DTO
-     * @throws IllegalStateException if the review is not in PENDING status
+     * @throws IllegalStateException if not owner, guest review, or not PENDING status
      */
     @Transactional
-    public ReviewDTO updateReview(Integer id, UpdateReviewRequest request) {
-        log.info("Updating review with id: {}", id);
+    public ReviewDTO updateReview(Integer id, UpdateReviewRequest request, Long callerUserId) {
+        log.info("Updating review with id: {} (callerUserId: {})", id, callerUserId);
 
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", id));
+
+        // Authz: only authenticated owners can edit (guest reviews not editable)
+        if (review.getAuthorUserId() == null) {
+            throw new IllegalStateException("Guest reviews cannot be edited.");
+        }
+        if (!review.getAuthorUserId().equals(callerUserId)) {
+            throw new IllegalStateException("You do not have permission to edit this review.");
+        }
 
         // Only allow editing PENDING reviews
         if (review.getStatus() != ReviewStatus.PENDING) {
@@ -200,12 +209,8 @@ public class ReviewService {
         review.setRoundType(request.getRoundType());
         review.setInterviewerInitials(normalizeInitials(request.getInterviewerInitials()));
 
-        // Update outcome if provided
-        if (request.getOutcome() != null && !request.getOutcome().isBlank()) {
-            review.setOutcome(ReviewOutcome.valueOf(request.getOutcome()));
-        } else {
-            review.setOutcome(null);
-        }
+        // Update outcome (now an enum, no parsing needed)
+        review.setOutcome(request.getOutcome());
 
         // Update tags
         if (request.getTagKeys() != null && !request.getTagKeys().isEmpty()) {
@@ -217,6 +222,13 @@ public class ReviewService {
         } else {
             review.setTags(new HashSet<>());
         }
+
+        // Reset moderation metadata (defensive; keeps invariants correct)
+        review.setApprovedAt(null);
+        review.setModeratedAt(null);
+        review.setModeratedByUserId(null);
+        review.setRejectionReason(null);
+        review.setStatus(ReviewStatus.PENDING);
 
         // Re-run moderation check after edit
         if (moderationService.shouldAutoApprove(review) &&
@@ -234,14 +246,33 @@ public class ReviewService {
     }
 
     /**
-     * Delete a review
+     * Delete a review.
+     * Only authenticated users can delete their own reviews. Guest reviews cannot be deleted.
+     * Only PENDING or REJECTED reviews can be deleted (not APPROVED).
+     *
+     * @param id The review ID to delete
+     * @param callerUserId The ID of the user attempting to delete (from auth context)
+     * @throws IllegalStateException if not owner, guest review, or approved status
      */
     @Transactional
-    public void deleteReview(Integer id) {
-        log.info("Deleting review with id: {}", id);
+    public void deleteReview(Integer id, Long callerUserId) {
+        log.info("Deleting review with id: {} (callerUserId: {})", id, callerUserId);
 
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", id));
+
+        // Authz: only authenticated owners can delete (guest reviews not deletable in MVP)
+        if (review.getAuthorUserId() == null) {
+            throw new IllegalStateException("Guest reviews cannot be deleted.");
+        }
+        if (!review.getAuthorUserId().equals(callerUserId)) {
+            throw new IllegalStateException("You do not have permission to delete this review.");
+        }
+
+        // Restrict deletes to pending/rejected only (approved reviews should not be deleted)
+        if (review.getStatus() == ReviewStatus.APPROVED) {
+            throw new IllegalStateException("Approved reviews cannot be deleted.");
+        }
 
         reviewRepository.delete(review);
         log.info("Review deleted successfully with id: {}", id);
@@ -308,16 +339,6 @@ public class ReviewService {
     }
 
     // ==================== Content Validation Guardrails ====================
-
-    /**
-     * Validate that required fields are present.
-     * Enforces stricter validation beyond basic @NotNull annotations.
-     */
-    private void validateRequiredFields(CreateReviewRequest request) {
-        if (request.getRoundType() == null || request.getRoundType().isBlank()) {
-            throw new ContentValidationException("roundType", "Interview round type is required.");
-        }
-    }
 
     /**
      * Validate that no full names are included in comment or interviewer initials.

@@ -2,18 +2,13 @@ package com.ratemyteacher.graphql.model;
 
 import java.util.List;
 
-/**
- * GraphQL Review type for public display.
- * Does NOT include status or approvedAt - those are only in MyReview.
- */
-public record ReviewGql(
-        int id,
+public record CreateReviewInputGql(
+        int interviewId,
         int rating,
         String comment,
         String reviewerName,
-        String createdAt,
-        List<String> tags,
         String roundType,
+        List<String> tagKeys,
         String interviewerInitials,
         String outcome
 ) {}

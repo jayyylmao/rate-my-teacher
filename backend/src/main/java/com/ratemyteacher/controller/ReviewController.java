@@ -13,8 +13,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
+/**
+ * Public review endpoints.
+ *
+ * POST /api/reviews - Create a new review (guest or authenticated)
+ * PUT /api/reviews/{id} - Update (authenticated owner only, pending only)
+ * DELETE /api/reviews/{id} - Delete (authenticated owner only, pending/rejected only)
+ *
+ * Note: GET endpoints have been moved to AdminReviewQueryController under /api/admin/reviews
+ * to prevent leaking PENDING/REJECTED review data to the public.
+ * Public review data should be accessed via GET /api/interviews/{id} which returns approved-only reviews.
+ */
 @RestController
 @RequestMapping("/api/reviews")
 @RequiredArgsConstructor
@@ -25,46 +36,6 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     /**
-     * GET /api/reviews - Get all reviews
-     */
-    @GetMapping
-    public ResponseEntity<List<ReviewDTO>> getAllReviews(
-            @RequestParam(required = false) Integer rating) {
-
-        log.info("GET /api/reviews - rating filter: {}", rating);
-
-        List<ReviewDTO> reviews;
-
-        if (rating != null) {
-            reviews = reviewService.getReviewsByRating(rating);
-        } else {
-            reviews = reviewService.getAllReviews();
-        }
-
-        return ResponseEntity.ok(reviews);
-    }
-
-    /**
-     * GET /api/reviews/{id} - Get a specific review
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ReviewDTO> getReviewById(@PathVariable Integer id) {
-        log.info("GET /api/reviews/{}", id);
-        ReviewDTO review = reviewService.getReviewById(id);
-        return ResponseEntity.ok(review);
-    }
-
-    /**
-     * GET /api/reviews/interview/{interviewId} - Get all reviews for a specific interview
-     */
-    @GetMapping("/interview/{interviewId}")
-    public ResponseEntity<List<ReviewDTO>> getReviewsByInterviewId(@PathVariable Integer interviewId) {
-        log.info("GET /api/reviews/interview/{}", interviewId);
-        List<ReviewDTO> reviews = reviewService.getReviewsByInterviewId(interviewId);
-        return ResponseEntity.ok(reviews);
-    }
-
-    /**
      * POST /api/reviews - Create a new review
      * Supports both guest and authenticated submissions.
      * If authenticated, the review is linked to the user's account.
@@ -72,44 +43,63 @@ public class ReviewController {
     @PostMapping
     public ResponseEntity<ReviewDTO> createReview(
             @Valid @RequestBody CreateReviewRequest request,
-            @RequestHeader(value = "X-User-Identifier", required = false) String userIdentifier,
             Authentication authentication) {
 
-        // Extract user ID if authenticated
         Long authorUserId = null;
-        if (authentication != null && authentication.getPrincipal() instanceof AppPrincipal) {
-            AppPrincipal principal = (AppPrincipal) authentication.getPrincipal();
+
+        if (authentication != null && authentication.getPrincipal() instanceof AppPrincipal principal) {
             authorUserId = principal.getUserId();
-            log.info("POST /api/reviews - Creating review for interview id: {} (authenticated user: {})",
+            log.info("POST /api/reviews - Creating review for interview id: {} (user: {})",
                     request.getInterviewId(), authorUserId);
         } else {
             log.info("POST /api/reviews - Creating review for interview id: {} (guest)",
                     request.getInterviewId());
         }
 
-        ReviewDTO createdReview = reviewService.createReview(request, userIdentifier, authorUserId);
+        // No identity header for MVP. Pass null userIdentifier.
+        ReviewDTO createdReview = reviewService.createReview(request, null, authorUserId);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdReview);
     }
 
     /**
-     * PUT /api/reviews/{id} - Update an existing review (only if PENDING)
+     * PUT /api/reviews/{id} - Update an existing review
+     * Only authenticated users can edit their own PENDING reviews.
+     * Guest reviews cannot be edited.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ReviewDTO> updateReview(
+    public ResponseEntity<?> updateReview(
             @PathVariable Integer id,
-            @Valid @RequestBody UpdateReviewRequest request) {
-        log.info("PUT /api/reviews/{} - Updating review", id);
-        ReviewDTO updatedReview = reviewService.updateReview(id, request);
-        return ResponseEntity.ok(updatedReview);
+            @Valid @RequestBody UpdateReviewRequest request,
+            Authentication authentication) {
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof AppPrincipal principal)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authentication required"));
+        }
+
+        log.info("PUT /api/reviews/{} - Updating review (user: {})", id, principal.getUserId());
+        ReviewDTO updated = reviewService.updateReview(id, request, principal.getUserId());
+        return ResponseEntity.ok(updated);
     }
 
     /**
      * DELETE /api/reviews/{id} - Delete a review
+     * Only authenticated users can delete their own reviews.
+     * Guest reviews cannot be deleted.
+     * Only PENDING or REJECTED reviews can be deleted (not APPROVED).
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteReview(@PathVariable Integer id) {
-        log.info("DELETE /api/reviews/{}", id);
-        reviewService.deleteReview(id);
+    public ResponseEntity<?> deleteReview(
+            @PathVariable Integer id,
+            Authentication authentication) {
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof AppPrincipal principal)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authentication required"));
+        }
+
+        log.info("DELETE /api/reviews/{} (user: {})", id, principal.getUserId());
+        reviewService.deleteReview(id, principal.getUserId());
         return ResponseEntity.noContent().build();
     }
 }
