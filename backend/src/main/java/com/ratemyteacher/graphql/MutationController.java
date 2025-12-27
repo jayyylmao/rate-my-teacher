@@ -1,11 +1,14 @@
 package com.ratemyteacher.graphql;
 
 import com.ratemyteacher.auth.AppPrincipal;
+import com.ratemyteacher.dto.CreateInterviewRequest;
 import com.ratemyteacher.dto.CreateReviewRequest;
+import com.ratemyteacher.dto.InterviewExperienceDTO;
 import com.ratemyteacher.dto.ReviewDTO;
 import com.ratemyteacher.dto.UpdateReviewRequest;
 import com.ratemyteacher.entity.ReviewOutcome;
 import com.ratemyteacher.graphql.model.*;
+import com.ratemyteacher.service.InterviewExperienceService;
 import com.ratemyteacher.service.ReviewService;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -17,9 +20,14 @@ import org.springframework.stereotype.Controller;
 public class MutationController {
 
     private final ReviewService reviewService;
+    private final InterviewExperienceService interviewService;
 
-    public MutationController(ReviewService reviewService) {
+    public MutationController(
+            ReviewService reviewService,
+            InterviewExperienceService interviewService
+    ) {
         this.reviewService = reviewService;
+        this.interviewService = interviewService;
     }
 
     /**
@@ -55,6 +63,67 @@ public class MutationController {
 
         // Return minimal response
         return new CreateReviewResponseGql(dto.getId(), dto.getStatus());
+    }
+
+    /**
+     * Create interview + review in one atomic operation (smart form)
+     * Checks for existing interview by company+role, creates if not found
+     * Returns minimal response with both interview and review IDs
+     */
+    @MutationMapping
+    public CreateInterviewWithReviewResponseGql createInterviewWithReview(
+            @Argument CreateInterviewWithReviewInputGql input,
+            Authentication authentication
+    ) {
+        // Extract auth info
+        Long authorUserId = null;
+        String userIdentifier = null;
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof AppPrincipal appPrincipal) {
+                authorUserId = appPrincipal.getUserId();
+                userIdentifier = appPrincipal.getEmail();
+            }
+        }
+
+        // Step 1: Find or create interview
+        CreateInterviewRequest interviewRequest = new CreateInterviewRequest();
+        interviewRequest.setCompany(input.company());
+        interviewRequest.setRole(input.role());
+        interviewRequest.setLevel(input.level());
+        interviewRequest.setStage(input.stage());
+        interviewRequest.setLocation(input.location());
+
+        InterviewExperienceService.InterviewWithCreationStatus result =
+                interviewService.findOrCreateInterview(interviewRequest);
+
+        InterviewExperienceDTO interview = result.interview();
+        boolean isNew = result.isNew();
+
+        // Step 2: Create review for the interview
+        CreateReviewRequest reviewRequest = new CreateReviewRequest();
+        reviewRequest.setInterviewId(interview.getId());
+        reviewRequest.setRating(input.rating());
+        reviewRequest.setComment(input.comment());
+        reviewRequest.setReviewerName(input.reviewerName());
+        reviewRequest.setRoundType(input.roundType());
+        reviewRequest.setTagKeys(input.tagKeys());
+        reviewRequest.setInterviewerInitials(input.interviewerInitials());
+
+        if (input.outcome() != null && !input.outcome().isBlank()) {
+            reviewRequest.setOutcome(ReviewOutcome.valueOf(input.outcome()));
+        }
+
+        ReviewDTO review = reviewService.createReview(reviewRequest, userIdentifier, authorUserId);
+
+        // Return minimal response
+        return new CreateInterviewWithReviewResponseGql(
+                interview.getId(),
+                review.getId(),
+                review.getStatus(),
+                isNew
+        );
     }
 
     /**

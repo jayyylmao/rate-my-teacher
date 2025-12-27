@@ -23,8 +23,13 @@ type Query {
 }
 
 type Mutation {
-  # Returns minimal response - client should refetch interview query on success
+  # Create review for existing interview - client should refetch interview query on success
   createReview(input: CreateReviewInput!): CreateReviewResponse!
+
+  # Create interview + review in one atomic operation (smart form)
+  # Checks for existing interview by company+role, creates if not found
+  createInterviewWithReview(input: CreateInterviewWithReviewInput!): CreateInterviewWithReviewResponse!
+
   updateReview(id: ID!, input: UpdateReviewInput!): UpdateReviewResponse!
   deleteReview(id: ID!): DeleteResponse!
 }
@@ -139,6 +144,24 @@ input CreateReviewInput {
   outcome: String
 }
 
+input CreateInterviewWithReviewInput {
+  # Interview fields (will search for existing or create new)
+  company: String!
+  role: String!
+  level: String
+  stage: String
+  location: String
+
+  # Review fields
+  rating: Int!
+  comment: String!
+  reviewerName: String!
+  roundType: String!
+  tagKeys: [String!]
+  interviewerInitials: String
+  outcome: String
+}
+
 input UpdateReviewInput {
   rating: Int!
   comment: String!
@@ -153,6 +176,13 @@ input UpdateReviewInput {
 type CreateReviewResponse {
   id: ID!
   status: String!
+}
+
+type CreateInterviewWithReviewResponse {
+  interviewId: ID!
+  reviewId: ID!
+  status: String!
+  isNewInterview: Boolean!
 }
 
 type UpdateReviewResponse {

@@ -23,6 +23,20 @@ public interface InterviewExperienceRepository extends JpaRepository<InterviewEx
 
     List<InterviewExperience> findByRoleContainingIgnoreCase(String role);
 
+    /**
+     * Find exact match by company and role (case-insensitive)
+     * Used for smart form to prevent duplicate interview entries
+     */
+    @Query("""
+        SELECT i FROM InterviewExperience i
+        WHERE LOWER(TRIM(i.company)) = LOWER(TRIM(:company))
+          AND LOWER(TRIM(i.role)) = LOWER(TRIM(:role))
+    """)
+    List<InterviewExperience> findByCompanyAndRoleExact(
+        @Param("company") String company,
+        @Param("role") String role
+    );
+
     @Query("""
         SELECT i FROM InterviewExperience i
         WHERE LOWER(i.company) LIKE LOWER(CONCAT('%', :query, '%'))

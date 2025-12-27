@@ -99,6 +99,46 @@ public class InterviewExperienceService {
     }
 
     /**
+     * Find existing interview by company and role, or create new one
+     * Used for smart form to prevent duplicates
+     * Returns: [interview, isNewInterview]
+     */
+    @Transactional
+    public InterviewWithCreationStatus findOrCreateInterview(CreateInterviewRequest request) {
+        log.info("Finding or creating interview for company: {} role: {}",
+                request.getCompany(), request.getRole());
+
+        // Try to find existing interview with exact company+role match
+        List<InterviewExperience> existing = interviewRepo.findByCompanyAndRoleExact(
+                request.getCompany(),
+                request.getRole()
+        );
+
+        if (!existing.isEmpty()) {
+            // Found existing interview - return it
+            InterviewExperience interview = existing.get(0);
+            log.info("Found existing interview with id: {}", interview.getId());
+            return new InterviewWithCreationStatus(
+                    mapWithAggregates(interview),
+                    false  // not new
+            );
+        }
+
+        // No match found - create new interview
+        InterviewExperienceDTO created = createInterview(request);
+        log.info("Created new interview with id: {}", created.getId());
+        return new InterviewWithCreationStatus(created, true);
+    }
+
+    /**
+     * Helper class to return interview with creation status
+     */
+    public record InterviewWithCreationStatus(
+            InterviewExperienceDTO interview,
+            boolean isNew
+    ) {}
+
+    /**
      * Delete interview experience (cascade deletes reviews)
      */
     @Transactional

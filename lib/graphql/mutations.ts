@@ -36,3 +36,19 @@ export const DELETE_REVIEW_MUTATION = `
     }
   }
 `;
+
+/**
+ * Create interview + review in one atomic operation (smart form).
+ * Checks for existing interview by company+role, creates if not found.
+ * Returns minimal response with both interview and review IDs.
+ */
+export const CREATE_INTERVIEW_WITH_REVIEW_MUTATION = `
+  mutation CreateInterviewWithReview($input: CreateInterviewWithReviewInput!) {
+    createInterviewWithReview(input: $input) {
+      interviewId
+      reviewId
+      status
+      isNewInterview
+    }
+  }
+`;
