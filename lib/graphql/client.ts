@@ -1,5 +1,7 @@
 // GraphQL client for Spring Boot backend
 
+import { getUserIdentifier } from '@/lib/utils/user-identifier';
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.API_URL ||
@@ -30,12 +32,22 @@ export async function graphqlRequest<T>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<T> {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  // Add user identifier header for guest voting (only in browser)
+  if (typeof window !== 'undefined') {
+    const identifier = getUserIdentifier();
+    if (identifier) {
+      headers['X-User-Identifier'] = identifier;
+    }
+  }
+
   const response = await fetch(GRAPHQL_ENDPOINT, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
       query,
       variables,

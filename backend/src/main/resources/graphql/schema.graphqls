@@ -32,6 +32,9 @@ type Mutation {
 
   updateReview(id: ID!, input: UpdateReviewInput!): UpdateReviewResponse!
   deleteReview(id: ID!): DeleteResponse!
+
+  # Toggle helpful vote on a review (add if not voted, remove if already voted)
+  voteReview(reviewId: ID!): VoteReviewResponse!
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -108,6 +111,10 @@ type Review {
   interviewerInitials: String
   outcome: String
   # Note: status/approvedAt only exposed in MyReviews, not public reviews
+
+  # Voting fields
+  helpfulCount: Int!
+  viewerHasVoted: Boolean!
 }
 
 # For My Reviews (includes moderation status)
@@ -192,6 +199,12 @@ type UpdateReviewResponse {
 
 type DeleteResponse {
   success: Boolean!
+}
+
+type VoteReviewResponse {
+  reviewId: ID!
+  helpfulCount: Int!
+  viewerHasVoted: Boolean!
 }
 
 # ─────────────────────────────────────────────────────────────

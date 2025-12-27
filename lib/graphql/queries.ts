@@ -27,6 +27,8 @@ export const INTERVIEW_QUERY = `
         roundType
         interviewerInitials
         outcome
+        helpfulCount
+        viewerHasVoted
       }
       ratingBreakdown {
         rating
@@ -197,6 +199,8 @@ export const INTERVIEW_PAGINATED_QUERY = `
             roundType
             interviewerInitials
             outcome
+            helpfulCount
+            viewerHasVoted
           }
           cursor
         }

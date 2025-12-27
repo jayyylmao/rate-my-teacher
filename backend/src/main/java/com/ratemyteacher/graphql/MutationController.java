@@ -10,24 +10,31 @@ import com.ratemyteacher.entity.ReviewOutcome;
 import com.ratemyteacher.graphql.model.*;
 import com.ratemyteacher.service.InterviewExperienceService;
 import com.ratemyteacher.service.ReviewService;
+import com.ratemyteacher.service.ReviewVoteService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Controller
 public class MutationController {
 
     private final ReviewService reviewService;
     private final InterviewExperienceService interviewService;
+    private final ReviewVoteService voteService;
 
     public MutationController(
             ReviewService reviewService,
-            InterviewExperienceService interviewService
+            InterviewExperienceService interviewService,
+            ReviewVoteService voteService
     ) {
         this.reviewService = reviewService;
         this.interviewService = interviewService;
+        this.voteService = voteService;
     }
 
     /**
@@ -164,5 +171,52 @@ public class MutationController {
 
         reviewService.deleteReview(id, callerUserId);
         return new DeleteResponseGql(true);
+    }
+
+    /**
+     * Toggle helpful vote on a review.
+     * If user hasn't voted, adds vote. If they have, removes it.
+     * Works for both authenticated users and guests.
+     */
+    @MutationMapping
+    public VoteReviewResponseGql voteReview(@Argument Integer reviewId, Authentication authentication) {
+        // Extract user identifier (email for auth users, UUID for guests from header)
+        String userIdentifier = extractUserIdentifier(authentication);
+
+        // Toggle vote
+        int newCount = voteService.toggleVote(reviewId, userIdentifier);
+
+        // Check new vote state
+        boolean hasVoted = voteService.hasVoted(reviewId, userIdentifier);
+
+        return new VoteReviewResponseGql(reviewId, newCount, hasVoted);
+    }
+
+    /**
+     * Helper: Extract user identifier for voting/contributions.
+     * For authenticated users: returns email
+     * For guests: returns X-User-Identifier header value (UUID from frontend)
+     */
+    private String extractUserIdentifier(Authentication authentication) {
+        // Try authenticated user first
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof AppPrincipal appPrincipal) {
+                return appPrincipal.getEmail();
+            }
+        }
+
+        // Fall back to guest identifier from header
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            HttpServletRequest request = attrs.getRequest();
+            String guestIdentifier = request.getHeader("X-User-Identifier");
+            if (guestIdentifier != null && !guestIdentifier.isBlank()) {
+                return guestIdentifier;
+            }
+        }
+
+        // No identifier available (will fail validation in service layer)
+        return null;
     }
 }

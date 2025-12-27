@@ -52,3 +52,17 @@ export const CREATE_INTERVIEW_WITH_REVIEW_MUTATION = `
     }
   }
 `;
+
+/**
+ * Toggle helpful vote on a review.
+ * Returns new vote count and viewer vote state.
+ */
+export const VOTE_REVIEW_MUTATION = `
+  mutation VoteReview($reviewId: ID!) {
+    voteReview(reviewId: $reviewId) {
+      reviewId
+      helpfulCount
+      viewerHasVoted
+    }
+  }
+`;

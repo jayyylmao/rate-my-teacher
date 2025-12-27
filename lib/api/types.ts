@@ -53,6 +53,8 @@ export interface ReviewDTO {
   outcome?: ReviewOutcome | null;
   status: ReviewStatus;
   approvedAt?: string | null;
+  helpfulCount: number;
+  viewerHasVoted: boolean;
 }
 
 export interface InterviewDetailDTO {

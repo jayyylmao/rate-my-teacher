@@ -78,4 +78,7 @@ public class Review {
         inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     private Set<Tag> tags = new HashSet<>();
+
+    @Column(name = "helpful_count", nullable = false)
+    private Integer helpfulCount = 0;
 }
