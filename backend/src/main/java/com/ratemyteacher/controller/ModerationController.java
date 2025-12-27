@@ -1,5 +1,6 @@
 package com.ratemyteacher.controller;
 
+import com.ratemyteacher.auth.AppPrincipal;
 import com.ratemyteacher.dto.ReviewDTO;
 import com.ratemyteacher.entity.Review;
 import com.ratemyteacher.entity.ReviewStatus;
@@ -10,6 +11,8 @@ import com.ratemyteacher.service.ReviewModerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -19,13 +22,13 @@ import java.util.stream.Collectors;
 
 /**
  * Admin/Moderation endpoints for managing review approval.
- * These endpoints should be protected by authentication in production.
+ * Protected by RBAC - requires ADMIN or MODERATOR role.
  */
 @RestController
 @RequestMapping("/api/admin/moderation")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "https://hello-world-five-peach.vercel.app"})
+@PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
 public class ModerationController {
 
     private final ReviewRepository reviewRepository;
@@ -67,8 +70,12 @@ public class ModerationController {
      * POST /api/admin/moderation/reviews/{id}/approve - Approve a pending review
      */
     @PostMapping("/reviews/{id}/approve")
-    public ResponseEntity<ReviewDTO> approveReview(@PathVariable Integer id) {
-        log.info("POST /api/admin/moderation/reviews/{}/approve", id);
+    public ResponseEntity<ReviewDTO> approveReview(
+            @PathVariable Integer id,
+            Authentication authentication) {
+
+        AppPrincipal principal = (AppPrincipal) authentication.getPrincipal();
+        log.info("POST /api/admin/moderation/reviews/{}/approve by user {}", id, principal.getUserId());
 
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", id));
@@ -78,10 +85,10 @@ public class ModerationController {
             return ResponseEntity.badRequest().build();
         }
 
-        moderationService.approveReview(review);
+        moderationService.approveReview(review, principal.getUserId());
         Review savedReview = reviewRepository.save(review);
 
-        log.info("Review {} approved by moderator", id);
+        log.info("Review {} approved by moderator {}", id, principal.getEmail());
         return ResponseEntity.ok(convertToDTO(savedReview));
     }
 
@@ -91,9 +98,11 @@ public class ModerationController {
     @PostMapping("/reviews/{id}/reject")
     public ResponseEntity<ReviewDTO> rejectReview(
             @PathVariable Integer id,
-            @RequestBody(required = false) RejectRequest request) {
+            @RequestBody(required = false) RejectRequest request,
+            Authentication authentication) {
 
-        log.info("POST /api/admin/moderation/reviews/{}/reject", id);
+        AppPrincipal principal = (AppPrincipal) authentication.getPrincipal();
+        log.info("POST /api/admin/moderation/reviews/{}/reject by user {}", id, principal.getUserId());
 
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", id));
@@ -105,12 +114,12 @@ public class ModerationController {
 
         String reason = (request != null && request.getReason() != null)
                 ? request.getReason()
-                : "No reason provided";
+                : null;
 
-        moderationService.rejectReview(review, reason);
+        moderationService.rejectReview(review, reason, principal.getUserId());
         Review savedReview = reviewRepository.save(review);
 
-        log.info("Review {} rejected by moderator. Reason: {}", id, reason);
+        log.info("Review {} rejected by moderator {}. Reason: {}", id, principal.getEmail(), reason);
         return ResponseEntity.ok(convertToDTO(savedReview));
     }
 

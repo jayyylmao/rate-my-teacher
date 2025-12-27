@@ -1,0 +1,64 @@
+type Query {
+  interviewDetail(id: ID!): InterviewDetailResponse!
+  me: Me
+  stats: PlatformStats!
+}
+
+type PlatformStats {
+  totalInterviews: Int!
+  totalReviews: Int!
+}
+
+type Me {
+  id: ID!
+  email: String!
+  roles: [String!]!
+  myReviews: MyReviewsResponse!
+}
+
+type MyReviewsResponse {
+  items: [Review!]!
+  count: Int!
+}
+
+# Mirrors InterviewDetailResponse DTO
+type InterviewDetailResponse {
+  interview: InterviewExperience!
+  reviews: [Review!]!
+  ratingBreakdown: [RatingCount!]!
+}
+
+# Mirrors InterviewExperienceDTO (minus detail-only extras except breakdown)
+type InterviewExperience {
+  id: ID!
+  company: String!
+  role: String!
+  level: String
+  stage: String
+  location: String
+  createdAt: String!
+  averageRating: Float
+  reviewCount: Int!
+  lastReviewedAt: String
+}
+
+type RatingCount {
+  rating: Int!
+  count: Int!
+}
+
+# Mirrors ReviewDTO
+type Review {
+  id: ID!
+  interviewId: ID!
+  rating: Int!
+  comment: String!
+  reviewerName: String!
+  createdAt: String!
+  tags: [String!]!
+  roundType: String
+  interviewerInitials: String
+  outcome: String
+  status: String!
+  approvedAt: String
+}

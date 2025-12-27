@@ -30,7 +30,7 @@ public class MeController {
 
     /**
      * GET /api/me
-     * Returns the current authenticated user's info.
+     * Returns the current authenticated user's info including roles.
      * Returns 401 if not authenticated (handled by Spring Security).
      */
     @GetMapping("/me")
@@ -41,7 +41,8 @@ public class MeController {
 
         return ResponseEntity.ok(Map.of(
                 "id", principal.getUserId(),
-                "email", principal.getEmail()
+                "email", principal.getEmail(),
+                "roles", principal.getRoles()
         ));
     }
 

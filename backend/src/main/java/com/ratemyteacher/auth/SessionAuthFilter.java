@@ -7,11 +7,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Filter that extracts the session ID from the 'sid' cookie and sets up
@@ -37,10 +40,15 @@ public class SessionAuthFilter extends OncePerRequestFilter {
         String sid = readCookie(request, COOKIE_NAME);
 
         sessionService.authenticate(sid).ifPresent(principal -> {
+            // Convert roles to Spring Security authorities
+            List<GrantedAuthority> authorities = principal.getRoles().stream()
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
+
             Authentication auth = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,
-                    List.of() // No granted authorities for MVP
+                    authorities
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
 

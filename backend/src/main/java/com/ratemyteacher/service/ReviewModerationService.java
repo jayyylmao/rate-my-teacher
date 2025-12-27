@@ -109,7 +109,7 @@ public class ReviewModerationService {
     }
 
     /**
-     * Approve a review (called by auto-approve or moderator).
+     * Approve a review (called by auto-approve).
      * Sets status to APPROVED and records the approval timestamp.
      *
      * @param review The review to approve
@@ -117,7 +117,25 @@ public class ReviewModerationService {
     public void approveReview(Review review) {
         review.setStatus(ReviewStatus.APPROVED);
         review.setApprovedAt(LocalDateTime.now());
-        log.info("Review {} approved", review.getId());
+        review.setModeratedAt(LocalDateTime.now());
+        review.setRejectionReason(null);
+        log.info("Review {} auto-approved", review.getId());
+    }
+
+    /**
+     * Approve a review by a moderator.
+     * Sets status to APPROVED, records approval timestamp and moderator info.
+     *
+     * @param review The review to approve
+     * @param moderatorUserId The user ID of the moderator performing the action
+     */
+    public void approveReview(Review review, Long moderatorUserId) {
+        review.setStatus(ReviewStatus.APPROVED);
+        review.setApprovedAt(LocalDateTime.now());
+        review.setModeratedByUserId(moderatorUserId);
+        review.setModeratedAt(LocalDateTime.now());
+        review.setRejectionReason(null);
+        log.info("Review {} approved by moderator {}", review.getId(), moderatorUserId);
     }
 
     /**
@@ -165,16 +183,18 @@ public class ReviewModerationService {
 
     /**
      * Reject a review (moderator action only).
-     * Sets status to REJECTED.
+     * Sets status to REJECTED and records audit info.
      *
      * @param review The review to reject
-     * @param reason The reason for rejection (logged for audit purposes)
+     * @param reason The reason for rejection
+     * @param moderatorUserId The user ID of the moderator performing the action
      */
-    public void rejectReview(Review review, String reason) {
+    public void rejectReview(Review review, String reason, Long moderatorUserId) {
         review.setStatus(ReviewStatus.REJECTED);
-        log.info("Review {} rejected. Reason: {}", review.getId(), reason);
-        // Note: If rejection_reason field is added to Review entity in the future,
-        // it should be set here: review.setRejectionReason(reason);
+        review.setRejectionReason(reason);
+        review.setModeratedByUserId(moderatorUserId);
+        review.setModeratedAt(LocalDateTime.now());
+        log.info("Review {} rejected by moderator {}. Reason: {}", review.getId(), moderatorUserId, reason);
     }
 
     /**

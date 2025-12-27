@@ -62,6 +62,15 @@ public class Review {
     @Column(name = "author_user_id")
     private Long authorUserId;
 
+    @Column(name = "moderated_by_user_id")
+    private Long moderatedByUserId;
+
+    @Column(name = "moderated_at")
+    private LocalDateTime moderatedAt;
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @ManyToMany
     @JoinTable(
         name = "review_tags",

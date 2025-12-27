@@ -9,6 +9,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service for managing user sessions.
@@ -47,7 +49,12 @@ public class SessionService {
                 return Optional.empty();
             }
             return userRepository.findById(session.getUserId())
-                    .map(user -> new AppPrincipal(user.getId(), user.getEmail()));
+                    .map(user -> {
+                        Set<String> roles = user.getRoles().stream()
+                                .map(RoleEntity::getName)
+                                .collect(Collectors.toSet());
+                        return new AppPrincipal(user.getId(), user.getEmail(), roles);
+                    });
         });
     }
 

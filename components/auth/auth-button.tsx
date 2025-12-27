@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "./auth-provider";
 import { SignInModal } from "./sign-in-modal";
 
@@ -58,6 +59,17 @@ export function AuthButton() {
                   {user.email}
                 </p>
               </div>
+              {user.roles?.some((role) =>
+                ["ROLE_ADMIN", "ROLE_MODERATOR"].includes(role)
+              ) && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Admin Dashboard
+                </Link>
+              )}
               <button
                 onClick={async () => {
                   setIsDropdownOpen(false);

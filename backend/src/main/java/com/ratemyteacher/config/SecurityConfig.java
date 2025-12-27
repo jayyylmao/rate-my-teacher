@@ -4,7 +4,7 @@ import com.ratemyteacher.auth.SessionAuthFilter;
 import com.ratemyteacher.auth.SessionService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,6 +22,7 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -44,6 +45,9 @@ public class SecurityConfig {
 
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
+                        // GraphQL endpoint is public (auth enforced in resolvers)
+                        .requestMatchers("/graphql").permitAll()
+
                         // Auth endpoints are always public
                         .requestMatchers("/api/auth/**").permitAll()
 
@@ -51,8 +55,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/me").authenticated()
                         .requestMatchers("/api/my/**").authenticated()
 
-                        // Admin endpoints require authentication (add role check later)
-                        .requestMatchers("/api/admin/**").authenticated()
+                        // Admin role management requires ADMIN only
+                        .requestMatchers("/api/admin/roles/**").hasRole("ADMIN")
+
+                        // Other admin endpoints require ADMIN or MODERATOR
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MODERATOR")
 
                         // Health check is public
                         .requestMatchers("/api/health").permitAll()
@@ -91,6 +98,7 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/graphql", configuration);
         return source;
     }
 }

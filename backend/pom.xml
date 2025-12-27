@@ -50,6 +50,12 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!-- Spring GraphQL -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-graphql</artifactId>
+        </dependency>
+
         <!-- Flyway for database migrations -->
         <dependency>
             <groupId>org.flywaydb</groupId>

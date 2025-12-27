@@ -118,9 +118,12 @@ export interface AddReviewPayload {
 }
 
 // Auth types
+export type UserRole = "ROLE_ADMIN" | "ROLE_MODERATOR";
+
 export interface User {
   id: number;
   email: string;
+  roles: UserRole[];
 }
 
 export interface AuthStartRequest {
