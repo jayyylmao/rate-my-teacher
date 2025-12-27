@@ -15,7 +15,7 @@ interface InterviewReviewFormProps {
   initialTags: TagDTO[];
 }
 
-const MIN_COMMENT_LENGTH = 50;
+const MIN_COMMENT_LENGTH = 30;
 
 interface StructuredRatingConfig {
   key: keyof StructuredRatings;
@@ -120,11 +120,6 @@ export default function InterviewReviewForm({ interviewId, initialTags }: Interv
 
     if (rating === 0) {
       setError("Please select an overall rating");
-      return;
-    }
-
-    if (selectedTags.length === 0) {
-      setError("Please select at least one tag");
       return;
     }
 
@@ -350,10 +345,10 @@ export default function InterviewReviewForm({ interviewId, initialTags }: Interv
         </div>
       </div>
 
-      {/* 3. Tags (required >= 1) */}
+      {/* 3. Tags (optional) */}
       <div>
         <label className="block text-lg font-semibold text-gray-900 mb-3">
-          Tags <span className="text-red-500">*</span>
+          Tags (Optional)
         </label>
         <p className="text-sm text-gray-600 mb-4">
           Select all that apply to describe your experience
@@ -542,7 +537,6 @@ export default function InterviewReviewForm({ interviewId, initialTags }: Interv
             rating === 0 ||
             !comment.trim() ||
             comment.trim().length < MIN_COMMENT_LENGTH ||
-            selectedTags.length === 0 ||
             !!initialsError
           }
           size="lg"

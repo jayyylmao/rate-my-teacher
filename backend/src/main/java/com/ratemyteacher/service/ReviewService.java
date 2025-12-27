@@ -314,10 +314,6 @@ public class ReviewService {
      * Enforces stricter validation beyond basic @NotNull annotations.
      */
     private void validateRequiredFields(CreateReviewRequest request) {
-        if (request.getTagKeys() == null || request.getTagKeys().isEmpty()) {
-            throw new ContentValidationException("tagKeys", "At least one tag is required.");
-        }
-
         if (request.getRoundType() == null || request.getRoundType().isBlank()) {
             throw new ContentValidationException("roundType", "Interview round type is required.");
         }

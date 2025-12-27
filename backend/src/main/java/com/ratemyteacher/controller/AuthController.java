@@ -108,16 +108,15 @@ public class AuthController {
      * Set the session cookie on the response.
      */
     private void setSidCookie(HttpServletResponse response, String sid) {
+        String sameSite = secureCookie ? "None" : "Lax";
+
         StringBuilder cookie = new StringBuilder();
         cookie.append("sid=").append(sid);
         cookie.append("; Path=/");
         cookie.append("; HttpOnly");
-        cookie.append("; SameSite=Lax");
+        cookie.append("; SameSite=").append(sameSite);
+        if (secureCookie) cookie.append("; Secure");
         cookie.append("; Max-Age=").append(30 * 24 * 60 * 60); // 30 days
-
-        if (secureCookie) {
-            cookie.append("; Secure");
-        }
 
         response.addHeader("Set-Cookie", cookie.toString());
     }
@@ -126,16 +125,15 @@ public class AuthController {
      * Clear the session cookie.
      */
     private void clearSidCookie(HttpServletResponse response) {
+        String sameSite = secureCookie ? "None" : "Lax";
+
         StringBuilder cookie = new StringBuilder();
         cookie.append("sid=");
         cookie.append("; Path=/");
         cookie.append("; HttpOnly");
-        cookie.append("; SameSite=Lax");
+        cookie.append("; SameSite=").append(sameSite);
+        if (secureCookie) cookie.append("; Secure");
         cookie.append("; Max-Age=0"); // Expire immediately
-
-        if (secureCookie) {
-            cookie.append("; Secure");
-        }
 
         response.addHeader("Set-Cookie", cookie.toString());
     }
