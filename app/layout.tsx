@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import Image from "next/image";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { AuthButton } from "@/components/auth/auth-button";
 import "./globals.css";
@@ -18,6 +19,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Rate My Interview | Share Your Interview Experience",
   description: "Share and discover honest interview experiences. Help others prepare for their interviews with real feedback from candidates.",
+  icons: {
+    icon: "/logo.jpeg",
+  },
 };
 
 export default function RootLayout({
@@ -34,9 +38,18 @@ export default function RootLayout({
           {/* Header */}
           <header className="bg-white border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-16">
-                <Link href="/" className="text-xl font-semibold text-gray-900">
-                  Rate My Interview
+              <div className="flex items-center justify-between h-20">
+                <Link href="/" className="flex items-center gap-3">
+                  <Image
+                    src="/logo.jpeg"
+                    alt="Rate My Interview Logo"
+                    width={56}
+                    height={56}
+                    className="rounded-lg"
+                  />
+                  <span className="text-xl font-semibold text-gray-900">
+                    Rate My Interview
+                  </span>
                 </Link>
                 <div className="flex items-center gap-4">
                   <Link
