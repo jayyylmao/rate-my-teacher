@@ -43,8 +43,8 @@ export default function RootLayout({
                   <Image
                     src="/logo.jpeg"
                     alt="Rate My Interview Logo"
-                    width={120}
-                    height={120}
+                    width={240}
+                    height={240}
                     className="rounded-xl"
                   />
                   <span className="text-2xl font-bold text-gray-900">
