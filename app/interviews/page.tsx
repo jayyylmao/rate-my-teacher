@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Metadata } from "next";
 import InterviewGrid from "@/components/interviews/interview-grid";
 import Breadcrumb from "@/components/ui/breadcrumb";
+import CanonicalFramingDisclaimer from "@/components/ui/canonical-framing-disclaimer";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,9 @@ export default async function InterviewsPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Canonical Framing Disclaimer - shown once on first use */}
+      <CanonicalFramingDisclaimer />
+
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

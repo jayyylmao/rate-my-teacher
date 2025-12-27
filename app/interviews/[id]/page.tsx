@@ -9,8 +9,10 @@ import ShareButton from "@/components/ui/share-button";
 import RatingDistribution from "@/components/ui/rating-distribution";
 import ReviewList from "@/components/reviews/review-list";
 import SubmissionSuccessBanner from "@/components/reviews/submission-success-banner";
+import CanonicalFramingDisclaimer from "@/components/ui/canonical-framing-disclaimer";
 import { interviewApi } from "@/lib/api/interviews";
 import type { InterviewDetailDTO } from "@/lib/api/types";
+import { formatTagKey } from "@/lib/utils/format";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -102,8 +104,38 @@ export default async function InterviewProfilePage({ params }: PageProps) {
     .filter(Boolean)
     .join(" · ");
 
+  // Calculate top tags from reviews
+  const tagCounts = new Map<string, number>();
+  reviews.forEach(review => {
+    review.tags?.forEach(tag => {
+      tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+    });
+  });
+
+  const topTags = Array.from(tagCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([tag, count]) => ({ tag, count }));
+
+  // Categorize tags by sentiment
+  const positiveTags = ['PROMPT_FEEDBACK', 'WELL_ORGANIZED'];
+  const negativeTags = ['GHOST_JOB', 'NO_FEEDBACK', 'LONG_PROCESS', 'UNREASONABLE_DIFFICULTY', 'MISALIGNED_ROLE', 'DISRESPECTFUL'];
+
+  // Get recent review snippets (first 150 chars)
+  const recentSnippets = reviews
+    .slice(0, 5)
+    .map(review => ({
+      id: review.id,
+      snippet: review.comment.substring(0, 150) + (review.comment.length > 150 ? '...' : ''),
+      rating: review.rating,
+      tags: review.tags || []
+    }));
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Canonical Framing Disclaimer - shown once on first use */}
+      <CanonicalFramingDisclaimer />
+
       {/* Submission Success Banner */}
       <Suspense fallback={null}>
         <SubmissionSuccessBanner />
@@ -158,24 +190,101 @@ export default async function InterviewProfilePage({ params }: PageProps) {
           </div>
 
           {/* Overall Rating */}
-          <div className="mt-8 flex flex-wrap items-center gap-6">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 flex items-center gap-4">
-              <div className="text-center">
-                <div className="text-5xl font-bold mb-1">
-                  {reviewCount > 0 ? averageRating.toFixed(1) : "N/A"}
+          <div className="mt-8 space-y-3">
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 flex items-center gap-4">
+                <div className="text-center">
+                  <div className="text-5xl font-bold mb-1">
+                    {reviewCount > 0 ? averageRating.toFixed(1) : "N/A"}
+                  </div>
+                  <div className="text-sm text-blue-100">out of 5</div>
                 </div>
-                <div className="text-sm text-blue-100">out of 5</div>
+              </div>
+              <div>
+                <StarRating rating={averageRating} size="lg" />
+                <p className="text-blue-100 mt-2">
+                  {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
+                </p>
               </div>
             </div>
-            <div>
-              <StarRating rating={averageRating} size="lg" />
-              <p className="text-blue-100 mt-2">
-                {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
-              </p>
-            </div>
+            {/* Micro-copy clarifier - Section 6.2 of goal.md */}
+            <p className="text-sm text-blue-100 italic">
+              Reported experiences vary by role, timing, and interviewer.
+            </p>
           </div>
         </div>
       </div>
+
+      {/* Top Tags & Common Patterns Section */}
+      {reviewCount > 0 && topTags.length > 0 && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-xl shadow-md p-6">
+            {/* Top Tags */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Common Themes
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                {topTags.map(({ tag, count }) => {
+                  const isPositive = positiveTags.includes(tag);
+                  const isNegative = negativeTags.includes(tag);
+                  const colorClass = isPositive
+                    ? 'bg-green-100 text-green-800 border-green-200'
+                    : isNegative
+                    ? 'bg-red-100 text-red-800 border-red-200'
+                    : 'bg-gray-100 text-gray-800 border-gray-200';
+
+                  return (
+                    <div
+                      key={tag}
+                      className={`px-4 py-2 rounded-full text-sm font-medium border ${colorClass} flex items-center gap-2`}
+                    >
+                      <span>{formatTagKey(tag as any)}</span>
+                      <span className="text-xs opacity-75">({count})</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Common Patterns - Recent Snippets */}
+            {recentSnippets.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Recent Experiences
+                </h3>
+                <div className="space-y-3">
+                  {recentSnippets.map((snippet) => (
+                    <div
+                      key={snippet.id}
+                      className="border-l-4 border-blue-200 bg-gray-50 p-3 rounded-r"
+                    >
+                      <p className="text-sm text-gray-700 italic">
+                        "{snippet.snippet}"
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <StarRating rating={snippet.rating} size="sm" />
+                        {snippet.tags.length > 0 && (
+                          <div className="flex gap-1">
+                            {snippet.tags.slice(0, 2).map(tag => (
+                              <span
+                                key={tag}
+                                className="text-xs px-2 py-0.5 bg-gray-200 text-gray-600 rounded"
+                              >
+                                {formatTagKey(tag as any)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -190,11 +299,23 @@ export default async function InterviewProfilePage({ params }: PageProps) {
                 ratingCounts={ratingCounts}
                 totalReviews={reviewCount}
               />
+              {/* Micro-copy clarifier - Section 6.2 of goal.md */}
+              <p className="text-xs text-gray-500 italic mt-4 pt-4 border-t">
+                Individual experiences may vary significantly.
+              </p>
             </div>
           </div>
 
           {/* Main Content - Reviews */}
           <div className="lg:col-span-2">
+            {/* Temporal context - Section 5.3 of goal.md */}
+            {reviewCount > 0 && interview.lastReviewedAt && (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-6">
+                <p className="text-sm text-blue-800">
+                  Based on reports collected through {new Date(interview.lastReviewedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+                </p>
+              </div>
+            )}
             <ReviewList reviews={reviews} />
           </div>
         </div>
