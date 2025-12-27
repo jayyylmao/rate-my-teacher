@@ -117,6 +117,12 @@ export default async function InterviewProfilePage({ params }: PageProps) {
     .slice(0, 6)
     .map(([tag, count]) => ({ tag, count }));
 
+  // Debug logging
+  console.log('[Interview Page] Reviews count:', reviews.length);
+  console.log('[Interview Page] Reviews with tags:', reviews.filter(r => r.tags && r.tags.length > 0).length);
+  console.log('[Interview Page] Tag counts:', Object.fromEntries(tagCounts));
+  console.log('[Interview Page] Top tags:', topTags);
+
   // Categorize tags by sentiment
   const positiveTags = ['PROMPT_FEEDBACK', 'WELL_ORGANIZED'];
   const negativeTags = ['GHOST_JOB', 'NO_FEEDBACK', 'LONG_PROCESS', 'UNREASONABLE_DIFFICULTY', 'MISALIGNED_ROLE', 'DISRESPECTFUL'];
