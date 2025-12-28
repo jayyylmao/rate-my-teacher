@@ -59,6 +59,13 @@ export function AuthButton() {
                   {user.email}
                 </p>
               </div>
+              <Link
+                href="/my/reviews"
+                onClick={() => setIsDropdownOpen(false)}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                My Reviews
+              </Link>
               {user.roles?.some((role) =>
                 ["ROLE_ADMIN", "ROLE_MODERATOR"].includes(role)
               ) && (
