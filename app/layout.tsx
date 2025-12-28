@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "Rate My Interview | Share Your Interview Experience",
   description: "Share and discover honest interview experiences. Help others prepare for their interviews with real feedback from candidates.",
   icons: {
-    icon: "/logo.jpeg",
+    icon: "/logo2.png",
   },
 };
 
@@ -41,15 +41,12 @@ export default function RootLayout({
               <div className="flex items-center justify-between py-4">
                 <Link href="/" className="flex items-center gap-4">
                   <Image
-                    src="/logo.jpeg"
+                    src="/logo2.png"
                     alt="Rate My Interview Logo"
                     width={240}
                     height={240}
                     className="rounded-xl"
                   />
-                  <span className="text-2xl font-bold text-gray-900">
-                    Rate My Interview
-                  </span>
                 </Link>
                 <div className="flex items-center gap-4">
                   <Link
